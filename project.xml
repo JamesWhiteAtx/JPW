@@ -1,0 +1,21 @@
+<project info="SuiteCloud IDE generated file, do not edit." setAttributesOnUpdate="false">
+  <folder name="JPW" bundleable="false">
+    <folder name="Lib" bundleable="false">
+      <file name="jPwClientUtils.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+      <file name="jPwJsUtils.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+      <file name="jPwNsScriptUtils.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+      <file name="jPwSelectorUI.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+      <file name="jPwServerUtils.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+    </folder>
+    <file name="EbayParts.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+    <file name="RoadwireEbay.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+    <file name="jPwCars.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+    <file name="jPwCatalogs.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+    <file name="jPwFormCstSO.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+    <file name="jPwParts.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+    <file name="jPwSelector.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+    <file name="placeholder.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+    <file name="testRestlet.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+    <file name="testSuitelet.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+  </folder>
+</project>
