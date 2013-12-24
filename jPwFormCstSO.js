@@ -19,7 +19,7 @@
 	var recKitId = 1;  
 	var allKitToken = 'allKitToken';
 	var allKitId = 2;
-	var kitDetailsToken = 'kitDetailsToken';
+	//var kitDetailsToken = 'kitDetailsToken';
 	jPw.TypeBestSeller = 6;	 
 	jPw.TypeOneTone = 1;
 	jPw.TypeSpecialEd = 7;	
@@ -46,7 +46,7 @@
 		  leaSlctr.listDlg.makeFiltOpt('Premium', function(rowObj){return (rowObj.leacontid == 2);}),
 		  leaSlctr.listDlg.makeFiltOpt('Pleated', function(rowObj){return (rowObj.insertstyleid == 3);}),
 		  leaSlctr.listDlg.makeFiltOpt('Smooth', function(rowObj){return (rowObj.insertstyleid == 4);}),
-		  leaSlctr.listDlg.makeFiltOpt('Spectial', function(rowObj){return (rowObj.specialedition === true);}),
+		  leaSlctr.listDlg.makeFiltOpt('Special', function(rowObj){return (rowObj.specialedition === true);}),
 		];}		
 	
 	function getImgUrl(path) {return jPw.getSysUrlDomain() + path; };
@@ -59,13 +59,9 @@
 			var colrImg = item.swatchimgurl ? getImgElm(item.swatchimgurl) : '';
 			var colTxt = kitsColrTxt(item); 
 			var colrElm = $('<span />').append(colrImg).append(colTxt);
-			return [colrElm, item.name, item.kittypename, item.unitprice];}
+			return [colrElm, item.name, item.kittypename, item.unitprice, item.decorations];}
 		,titlesFcn: function(defn, slctr) {return ['Color','Part#','Type','Price','Decorations']; }
-		,xtraFcn: function (item, defn, slctr) {
-			if (item.decorations) {
-				return '<p>'+item.decorations+'</p>';
-			};
-		}
+		//,xtraFcn: function (item, defn, slctr) {if (item.decorations) {return '<p>'+item.decorations+'</p>';};}
 	};
 	
 	function kitsTextFcn(item, defn, slctr) {return kitsColrTxt(item)+' '+item.name;};
@@ -76,17 +72,21 @@
 		leaSlctr.assignDlg( jPw.createSlctrDialog(dlgId) );
 	
 		leaSlctr.setBaseList([
-			{type: 'carptrns', listName: 'patterns', title: 'Patterns', objName: 'ptrn', idName: 'ptrnid', valName: 'ptrnName', parms: ['carid'] 
+			{type: 'carptrnsso', listName: 'patterns', title: 'Patterns', objName: 'ptrn', idName: 'ptrnid', valName: 'ptrnName', parms: ['carid'] 
 				,colsDefn: {
 					colsFcn: function (item, defn, slctr) {
-						var spcl = item.specialedition ? $( "<span />" ).addClass( "ui-icon ui-icon-check" ) : ''; 
-						return [item.name, item.seldescr, item.rowsname, item.airbagname, spcl];
+						var schmtc = item.schematic ? $('<a />', {'href': item.schematic, target: '_blank'}).append(
+								'<img src="/images/nav/mediatypes/pdf.gif?v=2013.2.0" alt="" width="20px" height="15px" border="0px" style="margin-bottom:-2px;" title="View Schematic Drawing">'
+						) : '';
+						var spcl = item.specialedition ? $( "<span />" ).addClass( "ui-icon ui-icon-check" ) : '';
+						//var dtls = '<p>'+item.descr+'<br>Notes: '+item.specialnotes+'<br>Content: '+item.leacontname +'<br>Insert: '+item.insertstylename+'<br>Fits Factory: '+item.fitsfactname+'</p>';
+						return [item.name, item.seldescr, item.rowsname, item.airbagname, schmtc, spcl, 
+						        item.leacontname, item.insertstylename, item.fitsfactname, item.specialnotes];
 					}
-					,titlesFcn: function(defn, slctr) {	return ['Pattern','Descritpion','Rows','Airbags', 'Special', 'Details']; }  			
-					,xtraFcn: function (item, defn, slctr) {
-						return '<p>'+item.descr+'<br>Notes: '+item.specialnotes+'<br>Content: '+item.leacontname
-							+'<br>Insert: '+item.insertstylename+'<br>Fits Factory: '+item.fitsfactname+'</p>';
-					}
+					,titlesFcn: function(defn, slctr) {	return ['Pattern','Description','Rows','Airbags', 
+					                                   	        $('<img src="/images/nav/mediatypes/pdf.gif?v=2013.2.0" alt="" width="20px" height="15px" border="0px" style="margin-bottom:-2px;" title="Schematic Drawing">'), 
+					                                   	        'Special', 'Content', 'Insert', 'Fits Fact', 'Notes']; }  			
+					//,xtraFcn: function (item, defn, slctr) {return '<p>'+item.descr+'<br>Notes: '+item.specialnotes+'<br>Content: '+item.leacontname +'<br>Insert: '+item.insertstylename+'<br>Fits Factory: '+item.fitsfactname+'</p>';}
 				}
 				,textFcn: function(item, defn, slctr) {return item.name+' '+item.seldescr;}
 				,filtDefns: getPtrnFilts(leaSlctr) 
@@ -107,27 +107,29 @@
 				,colsDefn: kitsColsDefn
 				,textFcn: kitsTextFcn
 				,filtDefns: getKitTypeFilts(leaSlctr)
+				,okClickFcn: function(slctr, defn, level){return (!!slctr.results.itemid);}
 		 	}]
-			,function (slctr) {return kitDetailsToken;}
+			//,function (slctr) {return kitDetailsToken;}
+			
 		)
 		.setAltList(allKitToken, [
 		 	{type: 'ptrnkitsso', listName: 'kits', title: 'All Kits', objName: 'kit', idName: 'itemid', valName: 'itemName', parms: ['ptrnid', 'custid']
 		 		,colsDefn: kitsColsDefn
 				,textFcn: kitsTextFcn
 				,filtDefns: getKitTypeFilts(leaSlctr)
+				,okClickFcn: function(slctr, defn, level){return (!!slctr.results.itemid);}
 		 	}]
-			, function (slctr) {return kitDetailsToken;}
+			//, function (slctr) {return kitDetailsToken;}
 		)
-		
-		.setAltList(kitDetailsToken, [
+		/*.setAltList(kitDetailsToken, [
 		 	{type: 'itemqtys', listName: 'qtys', title: 'Warehouse', objName: '', idName: 'locid', valName: 'locName', parms: ['itemid', 'subsid']
 			 	,colsDefn: {
-			 		colsFcn: function (item, defn, slctr) {return [item.name, item.qty];}
-			 		,titlesFcn: function(defn, slctr) {	return ['Warehouse','Qty Available']; }  			
+			 		colsFcn: function (item, defn, slctr) {return [item.name, item.qty, item.subs];}
+			 		,titlesFcn: function(defn, slctr) {	return ['Warehouse','Qty Available','Subsidiary']; }  			
 			 	}
 				,okFcn: function(slctr, defn, level){return (!!slctr.results.itemid);}
 		 	}]
-		)
+		)*/
 		;		
 		
 		leaSlctr.tltPrfx = 'Find Leather';
@@ -229,15 +231,44 @@
 		return (type == jPw.TypeAllLeather) || (type == jPw.TypeAllVinyl) || (type == jPw.TypeTwoTone) || (type == jPw.TypeThreeTone);
 	};
 	
-	jPw.leaSlctrOkClick = function(dlg, slctr) {
-		if (slctr.results.itemid) {
-			estShipDate = nlapiDateToString( getEstShipDate() );
-			nlapiSetCurrentLineItemValue('item', 'item', slctr.results.itemid, true, true);
-			nlapiSetCurrentLineItemValue('item', 'quantity', 1, true, true);
-			nlapiSetCurrentLineItemValue('item', 'location', slctr.results.locid, true, true);
-			nlapiSetCurrentLineItemValue('item', 'custcol_est_shipdate', estShipDate, true, true);
+	jPw.leaSlctrOkClick = function(leaDlg, slctr) {
+		
+		var dlgOk = function(dlg) {
+			//alert('picked'+dlg.locId);
+			if (slctr.results.itemid) {
+				dlg.startLoading();
+				
+				estShipDate = nlapiDateToString( getEstShipDate() );
+				nlapiSetCurrentLineItemValue('item', 'item', slctr.results.itemid, true, true);
+				nlapiSetCurrentLineItemValue('item', 'quantity', 1, true, true);
+				nlapiSetCurrentLineItemValue('item', 'custcol_est_shipdate', estShipDate, true, true);
+
+				//nlapiSetCurrentLineItemValue('item', 'location', slctr.results.locid, true, true);
+				var locId;
+				if (dlg.locId) {
+					locId = dlg.locId;
+				} else {
+					locId = nlapiGetFieldValue('location');
+				};
+				if (locId) {
+					nlapiSetCurrentLineItemValue('item', 'location', locId, true, true);
+				};
+				dlg.close();
+			};
+			return false;
 		};
-		return false;
+		
+		var dlg = jPw.createQtysDialog('inv-qty');
+		dlg.setOkClick(dlgOk);
+		
+		dlg.setTitle('Available Qtys for '+slctr.results.kit.leacolorname+' '+slctr.results.ptrn.seldescr+' '+slctr.results.kit.name);
+		
+		dlg.open();
+		
+		var itemid = slctr.results.itemid;
+		var subsid = nlapiGetFieldValue('subsidiary');
+		
+		dlg.loadQtys(itemid, subsid, dlgOk);
 	};
 	
 	jPw.displayLeaSlctrMnuItm = function(carid) {
@@ -260,6 +291,8 @@
 					'div.ui-dialog {font-size: 0.85em;} div.ui-dialog table {font-size: 0.85em;} '+ 
 					'table.lst-dlg-list {border-collapse: collapse; width:100%;} '+
 					'table.lst-dlg-list td, table.lst-dlg-list th {border: 1px solid #a0a0a0; padding: 3px;} '+
+					'table.lst-dlg-list th {font-weight:bold;} '+
+					'table.lst-dlg-list .highlight {color: blue; font-weight:bold;} '+
 					'table.lst-dlg-list tr:nth-child(even) {background-color: #deedf7; } '+
 					
 					'tr.jpw-found td {background-color: #CC9999;} '+
@@ -328,5 +361,5 @@
 
 	
 }( this.jPw = this.jPw || {}, jQuery ));
-//SO-40006
+//SO-40015
 //SO-36691

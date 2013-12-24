@@ -161,6 +161,7 @@
 			filtDefns: defnObj.filtDefns,
 			
 			okFcn: defnObj.okFcn,
+			okClickFcn: defnObj.okClickFcn,
 			dcsnFcn: undefined
 		};
 
@@ -471,7 +472,15 @@
 			if ((level+1) < levels.length) {
 				slctr.loadNextLevel(level);
 			} if (level == (levels.length-1)) {
+				
 				slctr.listDlg.enableOk();
+				
+				if (levels[level].okClickFcn) {
+					if (levels[level].okClickFcn(slctr, levels[level], level)) {
+						slctr.listDlg.close();
+						slctr.okClick(slctr.listDlg);
+					};
+				};
 			}
 		};
 		
@@ -672,4 +681,101 @@
 
 		return carSlctr;
 	};
+}( this.jPw = this.jPw || {}, jQuery ));
+
+console.log('qtysDialog');
+(function(jPw, $, undefined) {
+	jPw.qtysDialog = undefined;
+	
+	jPw.createQtysDialog = function(dlgId) {
+		if (!jPw.qtysDialog) {
+			var dlg = jPw.createDialog(dlgId);
+
+			dlg.setTitle('Available Qtys');
+			
+			function loadQtys(itemid, subsid, pickFcn) {
+				dlg.startLoading();
+				dlg.itemid = itemid; 
+				dlg.subsid = subsid;
+				dlg.subsName = undefined;
+				dlg.locId = undefined;
+
+				dlg.clearBody();
+				jPw.slctrResult('itemqtys', {itemid: itemid, subsid: subsid}, 
+					function(result) {
+					
+					dlg.subsName = result.subsName;
+					
+					var tbl = dlg.addToBodyElm('<table id="lea-slctr-dlgdlg-list" class="lst-dlg-list">'+
+							'<thead><tr><th>Subsidiary</th><th>Warehouse</th><th>Qty Available</th></tr></thead></table>');
+					
+					var bdy = $('<tbody></tbody>').appendTo(tbl);
+
+						var locs = result.qtys.sort(
+							  function(a,b){return a.subs == b.subs ? a.name - b.name : a.subs - b.subs;}
+							);
+					
+						var curSubs = '';
+						var dispSubs = '';
+						var tr, anch;
+						for (var i = 0; i < locs.length; i++){
+							
+							if (curSubs != locs[i].subs){
+								curSubs = locs[i].subs;
+								dispSubs = locs[i].subs;
+								if (i > 0) {
+									bdy.append('<tr><th></th><td></td><td></td></tr>');
+								};
+							} else {
+								dispSubs = '';
+							}
+							
+							tr = $('<tr />').append('<th>'+dispSubs+'</th>').appendTo(bdy); 
+							
+							if (curSubs == dlg.subsName) {
+								anch = $('<a />').addClass('highlight').attr("href", "#").append(locs[i].name)
+								.data('locid', locs[i].id)
+								.click(function() {
+									dlg.locId = $( this ).data('locid');
+									//dlg.mainDlgElm.dialog( "close" );
+			                    	if (pickFcn) {
+			                    		pickFcn(dlg);
+			                    	};
+									return false;
+								});								
+								
+								$('<td />').append(anch).appendTo(tr);	
+							} else {
+								$('<td>'+locs[i].name+'</td>').appendTo(tr);
+							};
+							$('<td>'+locs[i].qty+'</td>').appendTo(tr);
+							
+							//bdy.append('<tr><th>'+dispSubs+'</th><td>'+locs[i].name+'</td><td>'+locs[i].qty+'</td></tr>');
+						};
+					
+						dlg.endLoading();
+					},
+					function(e) {
+						dlg.endLoading();
+						if ( e instanceof nlobjError ) {
+							var msg = e.getCode() + '\n' + e.getDetails() + '\n' + e.getStackTrace();
+							nlapiLogExecution( 'DEBUG', 'system error', msg);
+							alert(msg);
+						} else {
+							nlapiLogExecution( 'DEBUG', 'unexpected error', e.toString());
+							alert('unexpected error: ' + e);
+						}
+					}
+				);
+			};
+			
+			dlg.loadQtys = function(itemid, subsid, pickFcn) {
+				loadQtys(itemid, subsid, pickFcn);
+			};
+			
+			jPw.qtysDialog = dlg;
+		};
+		return jPw.qtysDialog;
+	};
+
 }( this.jPw = this.jPw || {}, jQuery ));

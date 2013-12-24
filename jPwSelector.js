@@ -235,6 +235,21 @@
 			patterns: patterns
 		});
 	};
+	
+	slctr.carptrnsSOResult = function(carId, ctlgs) {
+		var result = slctr.carptrnsResult(carId, ctlgs);
+		
+		result.patterns = jPw.map(result.patterns, function(){
+			var ptrn = this;
+			var attchs = jPw.files.recordAttchs('pattern', ptrn.id, null, 'Pattern Schematics', null, 'PDF');
+			if (Array.isArray(attchs)) {
+				ptrn.schematic = jPw.files.getFileUrl( attchs[0].id ); 
+			};
+			return ptrn;
+		});
+		
+		return result;
+	};
 
 }( this.jPw.slctr = this.jPw.slctr || {}));
 
@@ -497,7 +512,7 @@
 			}
 		);
 		
-		var typeOrd = [10, 2, 6, 7, 4, 5, 1, 7];
+		var typeOrd = [10, 3, 6, 7, 4, 5, 1, 2];
 		
 		return ptrnKits.sort(function(reca, recb) {
 			var typea = reca.kittypeid;
@@ -577,18 +592,21 @@
 				new nlobjSearchFilter('makeinventoryavailable', 'inventorylocation', 'is', 'T'),
 				new nlobjSearchFilter('locationquantityavailable', null, 'greaterthan', 0),
 			], [
+			    new nlobjSearchColumn('subsidiary', 'inventorylocation'),
 			    new nlobjSearchColumn('inventorylocation'), 
 			    new nlobjSearchColumn('locationquantityavailable')
 			]);
 		
-		if (subsId) {
-			qtySrch.addFilt(new nlobjSearchFilter('subsidiary', 'inventorylocation', 'anyof', subsId));
-		};
+		//if (subsId) {
+		//	qtySrch.addFilt(new nlobjSearchFilter('subsidiary', 'inventorylocation', 'anyof', subsId));
+		//};
 		
 		var results = qtySrch.results();
 
 		var qtys = jPw.map(results, function(){
 			return {
+				//subId: this.getId('subsidiary', 'inventorylocation'),
+				subs: this.getValue('subsidiary', 'inventorylocation'),
 				id: this.getValue('inventorylocation'),
 				name: this.getText('inventorylocation'),
 				qty: this.getValue('locationquantityavailable')
@@ -596,12 +614,22 @@
 		});
 	
 		if (qtys.length == 0) {
-			qtys.push({itemid: itemId, id:0, name:'None found in inventory',qty:undefined});
+			qtys.push({subs: 0, itemid: itemId, id:0, name:'None found in inventory',qty:undefined});
+		};
+		
+		var sub = nlapiSearchRecord('subsidiary', null,
+				[ new nlobjSearchFilter('internalid', null, 'is', 4)],	
+				[new nlobjSearchColumn('namenohierarchy')]);
+
+		var subsName;
+		if ((sub) && (sub.length > 0)) {
+			subsName = sub[0].getValue('namenohierarchy');
 		};
 		
 		return jPw.okResult({
 			itemId: itemId,
 			subsId: subsId,
+			subsName: subsName,
 			qtys: qtys
 		});
 	};
@@ -735,6 +763,14 @@
 		};
 		return jPw.slctr.carptrnsResult(carId, ctlgs);
 	};
+
+	slctr.carptrnsSOResponse = function(request, ctlgs) {
+		var carId = jPw.getIdParm(request, 'carid');
+		if (typeof carId !== 'number') {
+			return carId;
+		};
+		return jPw.slctr.carptrnsSOResult(carId, ctlgs);
+	};
 	
 	slctr.carintcolsResponse = function(request, ctlgs) {
 		var carId = jPw.getIdParm(request, 'carid');
@@ -850,6 +886,7 @@
 			case 'ptrnrecs': jPw.successRespond(request, response, jPw.slctr.ptrnrecsResponse(request, ctlgs));break;
 			case 'ptrnkits': jPw.successRespond(request, response, jPw.slctr.ptrnkitsResponse(request, ctlgs));break;
 
+			case 'carptrnsso': jPw.successRespond(request, response, jPw.slctr.carptrnsSOResponse(request, ctlgs));break;
 			case 'ptrnrecsso': jPw.successRespond(request, response, jPw.slctr.ptrnrecsSOResponse(request, ctlgs));break;
 			case 'ptrnkitsso': jPw.successRespond(request, response, jPw.slctr.ptrnkitsSOResponse(request, ctlgs));break;
 			
@@ -875,7 +912,14 @@
 	 */
 	slctr.select = function (request, response){
 		var type = request.getParameter('type');
-		jPw.slctr.selectorType(request, response, type);
+
+		var ctlgs = undefined;
+		var ctlg = jPw.getIdParm(request, 'ctlg');
+		if ((typeof ctlg === 'number') && (ctlg > 0)) {
+			ctlgs = [ctlg];
+		};
+		
+		jPw.slctr.selectorType(request, response, type, ctlgs);
 	};
 	
 	/**

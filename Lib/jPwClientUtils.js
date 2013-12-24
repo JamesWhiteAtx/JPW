@@ -56,6 +56,13 @@
     		dlgElm.dialog("open");
     	};
 	};
+
+	function closeDlg(dlgElm) {
+    	var isOpn = dlgElm.dialog("isOpen");
+    	if (isOpn == true) {
+    		dlgElm.dialog("close");
+    	};
+	};
 	
 	jPw.slctOnly = function (slctr, ancst) {
 		var jqo = $(slctr, ancst);
@@ -176,6 +183,7 @@ console.log('jPw.createDialog');
 			bodyElm: bodyElm,
 			ctrlsElm: ctrlsElm,
 			open: function () { openDlg(mainDlgElm); },
+			close: function () {closeDlg(mainDlgElm); },
 	    	setTitle: function (title) { mainDlgElm.dialog('option', 'title', title); },
 	    	clearBody: function () {bodyElm.empty();},
 	    	addToHeadElm: addToHeadElm,

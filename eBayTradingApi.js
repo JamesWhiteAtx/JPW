@@ -6,8 +6,9 @@
  *
  */
 
-(function(apiet) {
+this.jPw = this.jPw || {};
 
+(function(apiet) {
 	apiet.getMotorsHeaders = function () {
 		var headers = [];
 		headers['X-EBAY-API-SITEID'] = '100';
@@ -22,6 +23,14 @@
 		headers['X-EBAY-API-CERT-NAME'] = '99fc89de-c5a8-4594-97a5-9974d1908432';
 	    return headers;
 	};
+	apiet.getProductionHeaders = function () {
+	    var headers = apiet.getMotorsHeaders();
+		headers['X-EBAY-API-COMPATIBILITY-LEVEL'] = '849';
+		headers['X-EBAY-API-DEV-NAME'] = '481891e7-46d4-4a19-8992-bbfef42842b7';
+		headers['X-EBAY-API-APP-NAME'] = 'Roadwire-36ca-46dd-ac36-2e3a7ba40080';
+		headers['X-EBAY-API-CERT-NAME'] = 'a562fc05-3f60-4d85-a9ce-249b4ec4cbc1';
+	    return headers;
+	};
 		
 	apiet.makeEnvSandBox = function () {
 		var environment = {
@@ -32,8 +41,93 @@
 		};
 		return environment;
 	};
+	
+	apiet.makeEnvProduction = function () {
+		var environment = {
+			uri: 'https://api.ebay.com/ws/api.dll',
+			headers: apiet.getProductionHeaders(),
+			authToken: 'AgAAAA**AQAAAA**aAAAAA**34OnUg**nY+sHZ2PrBmdj6wVnY+sEZ2PrA2dj6AFmYOlDJOGoAqdj6x9nY+seQ**RvwBAA**AAMAAA**uJrlEq/jW5TA7bd7pudUzSkEduO9/DDHyzvmjj8ODZRJx1UOa5eD9sX9vr+eLgtJNfiSOlhTGUIvttnchd+Zr7eYNc/F6X8HVPEkoMWDA3QKFI6TRi4Ried0sZYs9riP3VZ8KiNe6FIt2G1DVbtc6G4IwDADb1JE8D5xJ92AQYmiJCSDVPEKfuBSMkmr2z+OxCjzVep4QxowLdGl6DoxV2CloPsaYYOxF4oMlKZUSnvsLO7AlHIsPO+NyjB644obwNsImitwKqAEceyOIhRZFaCih598BrRSnnIxk8q+kiSD1Hn+RlYLiAlO2tP3C9+Aw9ja1rl5DGaDvaxkHl2gak+Z05boZoTxMYRlkX8n3qjv1DSRaQccM1eFykTpLKLR2P9JxcSDLwkHb1u1PYQSa6xw2gL7smJKymxOGpMRm3KjGkZhhiC27CnzSQP3oxnOPSdKJYoMaBp05olAx8IHUWXpv6SgqSckrWQ+9iqexPrJ6Wr5gRSEgSFOgv+/R0VK8JN6xxAxebZrPH9NOVP9w3RS/6ecG+9jEKry/3mcb6mIVBdUQadQ+4kiGLv88Pyag8pW9eBcqDFVkbEJBbJdAS98Tlu44gSaEQCwm/wTSSRwY3Fbn/KPiSIvRFA0h3UKFdLNftGbqhiGLbX9t7KgsK7PFx+/cejpPhhVCUfg42qRrUHycU56TvBfRDygodz7ydnXnq/HjDEiVB3EbR8mrLgTb7piLGgKgbV/vmGnyq3hsUCCpqzDCsQvuPksTo1N',
+			payPalEmail: 'Dennis.Harrison@classicsofttrim.com'
+		};
+		return environment;
+	};
+	
+	/*
+	customrecord_ebay_config
+	
+	custrecord_ebay_cfg_dev_acct
+	custrecord_ebay_cfg_env
+	custrecord_ebay_cfg_keyset
+	custrecord_ebay_cfg_devid
+	custrecord_ebay_cfg_appid
+	custrecord_ebay_cfg_certid
+	custrecord_ebay_cfg_trd_api_uri
+	custrecord_ebay_cfg_trd_api_vers
+	custrecord_ebay_cfg_siteid
+	custrecord_ebay_cfg_userid
+	custrecord_ebay_cfg_pp_email
+	custrecord_ebay_cfg_auth_token
+	custrecord_ebay_cfg_expiry_dt
+	custrecord_ebay_cfg_lstng_file_id	
+*/	
 
+	apiet.getEbayCfg = function() {
+		var results = nlapiSearchRecord('customrecord_ebay_config', null, null, 
+			[ 
+			  new nlobjSearchColumn('custrecord_ebay_cfg_siteid'),
+			  new nlobjSearchColumn('custrecord_ebay_cfg_trd_api_vers'),
+			  new nlobjSearchColumn('custrecord_ebay_cfg_devid'),
+			  new nlobjSearchColumn('custrecord_ebay_cfg_appid'),
+			  new nlobjSearchColumn('custrecord_ebay_cfg_certid'),
+			  new nlobjSearchColumn('custrecord_ebay_cfg_trd_api_uri'),
+			  new nlobjSearchColumn('custrecord_ebay_cfg_auth_token'),
+			  new nlobjSearchColumn('custrecord_ebay_cfg_pp_email'),
+			]);
+		
+		
+		if ((!results) || (results.length < 1)) {
+			var msg = 'Thare are no eBay configuration records defined.';
+			nlapiLogExecution('ERROR', msg);
+			throw nlapiCreateError('EBAY_CONFIG_MISSING', msg);
+			return;
+		};
+		
+		var cfgRecord = results[0];
+		
+		var trdHeaders = [];
+		trdHeaders['X-EBAY-API-SITEID'] = cfgRecord.getValue('custrecord_ebay_cfg_siteid');
+		trdHeaders['X-EBAY-API-COMPATIBILITY-LEVEL'] = cfgRecord.getValue('custrecord_ebay_cfg_trd_api_vers');
+		trdHeaders['X-EBAY-API-DEV-NAME'] = cfgRecord.getValue('custrecord_ebay_cfg_devid');
+		trdHeaders['X-EBAY-API-APP-NAME'] = cfgRecord.getValue('custrecord_ebay_cfg_appid');
+		trdHeaders['X-EBAY-API-CERT-NAME'] = cfgRecord.getValue('custrecord_ebay_cfg_certid');
+		
+		return {
+			trdUri: cfgRecord.getValue('custrecord_ebay_cfg_trd_api_uri'),
+			trdHeaders: trdHeaders,
+			authToken: cfgRecord.getValue('custrecord_ebay_cfg_auth_token'),
+			ppEmail: cfgRecord.getValue('custrecord_ebay_cfg_pp_email')
+		};
+	};
+	
+		
+	apiet.makeEnvConfig = function() {
+		var cfg = apiet.getEbayCfg();
+		var environment = {
+				uri: cfg.trdUri,
+				headers: cfg.trdHeaders,
+				authToken: cfg.authToken,
+				payPalEmail: cfg.ppEmail
+			};
+			return environment;
+	};
+	
 	apiet.makeApiRequest = function (callName, env) {
+		var environment;
+		if (env) {
+			environment = env;
+		} else {
+			environment = apiet.makeEnvConfig();
+		};
 		
 		var obj = {request: {}};
 		
@@ -70,7 +164,7 @@
 		};
 		
 		obj.getEnvironment = function () {
-			return env;
+			return environment;
 		};
 		
 		obj.getHeaders = function () {
@@ -96,30 +190,64 @@
 		};
 		
 		obj.callApiXmlObj = function () {
-			return nlapiStringToXML(obj.callApiXmlStr());
-		};
-		
-		obj.getEbayAck = function (xmlObj) {
-			return nlapiSelectValue(xmlObj, '//nlapi:Ack');
+			obj.respXmlStr = obj.callApiXmlStr();
+			obj.respXmlObj = nlapiStringToXML(obj.respXmlStr);
+			return obj.respXmlObj; 
 		};
 
-		obj.eBayAckCallback = function (xmlObj, notFailFcn, failFcn, warnFcn) {
-		    var ack = obj.getEbayAck(xmlObj);
+		obj.getAnyNodes = function (xmlObj, name) {
+			var path = '//nlapi:'+name;
+			return nlapiSelectNodes(xmlObj, path);
+		};
+		
+		obj.getRespAnyNodes = function (name) {
+			return obj.getAnyNodes(obj.respXmlObj, name);
+		};
+
+		obj.getAnyVal = function (xmlObj, name) {
+			var path = '//nlapi:'+name;
+			return nlapiSelectValue(xmlObj, path);
+		};
+		
+		obj.getRespAnyVal = function (name) {
+			return obj.getAnyVal(obj.respXmlObj, name);
+		};
+
+		obj.getSubVal = function (xmlObj, name) {
+			var path = './/nlapi:'+name;
+			return nlapiSelectValue(xmlObj, path);
+		};
+		
+		obj.getRespSubVal = function (name) {
+			return obj.getSubVal(obj.respXmlObj, name);
+		};
+
+		obj.getSubVals = function (xmlObj, name) {
+			var path = './/nlapi:'+name;
+			return nlapiSelectValues(xmlObj, path);
+		};
+		
+		obj.getEbayAck = function () {
+			return obj.getRespAnyVal('Ack');
+		};
+
+		obj.eBayAckCallback = function (obj, notFailFcn, failFcn, warnFcn) {
+		    var ack = obj.getEbayAck();
 			if ((ack == 'Success') || (ack == 'Warning')) {
 		    	
-				notFailFcn(xmlObj);
+				notFailFcn(obj);
 		    	
-				if (ack == 'Warning') {
-		    		warnFcn(xmlObj);
+				if ((ack == 'Warning') && (warnFcn)) {
+		    		warnFcn(obj);
 		    	};
 		    } else if (ack == 'Failure') {
-		        failFcn(xmlObj);
+		        failFcn(obj);
 		    };
 		};
 
 		obj.callApiCallback = function (notFailFcn, failFcn, warnFcn) {
-			var xmlObj = obj.callApiXmlObj();
-			obj.eBayAckCallback(xmlObj, notFailFcn, failFcn, warnFcn);
+			obj.callApiXmlObj();
+			obj.eBayAckCallback(obj, notFailFcn, failFcn, warnFcn);
 		};
 		
 		obj.addOutputSelector = function(selector) {
@@ -137,7 +265,8 @@
 
 (function(apiet) {
 	
-	apiet.makeAddFixedPriceItemRequest = function (env) {
+	//apiet.makeAddFixedPriceItemRequest = function (env) {
+	apiet.makeFixedPriceItemRequest = function (callName, itemJson, env) {		
 		
 		function makePictureDetails() {
 			var obj = {
@@ -184,90 +313,8 @@
 			return obj;
 		};
 
-		var itemJson = {
-		      "ApplicationData": '',
-		      "Country": "US",
-		      "Currency": "USD",
-		      "Description": '',
-		      "HitCounter": "HiddenStyle",
-		      "ListingDuration": "GTC",
-		      "ListingType": "FixedPriceItem",
-		      "Location": "Dallas, TX",
-		      "PaymentMethods": "PayPal",
-		      "PayPalEmailAddress": '',
-		      "PrimaryCategory": { "CategoryID": '' },
-		      "PrivateListing": "false",
-		      "Quantity": '',
-		      "PrivateNotes": '',
-		      "ShippingDetails": {
-		        "ApplyShippingDiscount": "false",
-		        "CalculatedShippingRate": {
-		          "WeightMajor": {
-		            "@measurementSystem": "English",
-		            "@unit": "lbs",
-		            "#text": "0"
-		          },
-		          "WeightMinor": {
-		            "@measurementSystem": "English",
-		            "@unit": "oz",
-		            "#text": "0"
-		          }
-		        },
-		        "SalesTax": {
-		          "SalesTaxPercent": "0.0",
-		          "ShippingIncludedInTax": "false"
-		        },
-		        "ShippingServiceOptions": {
-		          "ShippingService": "UPSGround",
-		          "ShippingServiceCost": {
-		            "@currencyID": "USD",
-		            "#text": "0.0"
-		          },
-		          "ShippingServiceAdditionalCost": {
-		            "@currencyID": "USD",
-		            "#text": "0.0"
-		          },
-		          "ShippingServicePriority": "1",
-		          "FreeShipping": "true"
-		        },
-		        "ShippingType": "Flat",
-		        "ThirdPartyCheckout": "false",
-		        "ShippingDiscountProfileID": "0",
-		        "InternationalShippingDiscountProfileID": "0",
-		        "SellerExcludeShipToLocationsPreference": "true"
-		      },
-		      "ShipToLocations": "US",
-		      "Site": "eBayMotors",
-		      "StartPrice": '',
-		      "SubTitle": '',
-		      "Title": '',
-		      "SKU": '',
-		      "PostalCode": "75019",
-		      "DispatchTimeMax": "5",
-		      "ReturnPolicy": {
-		        "RefundOption": "MoneyBack",
-		        "ReturnsWithinOption": "Days_30",
-		        "ReturnsAcceptedOption": "ReturnsAccepted",
-		        "Description": "Returns accepted before installation",
-		        "WarrantyOfferedOption": "WarrantyOffered",
-		        "WarrantyTypeOption": "ManufacturerWarranty",
-		        "WarrantyDurationOption": "Months_1",
-		        "ShippingCostPaidByOption": "Buyer",
-		        "RestockingFeeValueOption": "Percent_15"
-		      },
-		      "InventoryTrackingMethod": "SKU",
-		      "ConditionID": "1000",
-		      "ShippingPackageDetails": {
-		        "ShippingIrregular": "false",
-		        "ShippingPackage": "USPSLargePack",
-		        "MeasurementUnit": "English",
-		        "WeightMajor": "15",
-		        "WeightMinor": "0"
-		      },
-		      "OutOfStockControl": "true"
-		    };
-		
-		var obj = apiet.makeApiRequest('AddFixedPriceItem', env); 
+		//////////////////////////////////////////////
+		var obj = apiet.makeApiRequest(callName, env); 
 		obj.setRequestProp("Item", itemJson);
 		
 		obj.getItem = function() {
@@ -357,17 +404,117 @@
         };
 
         obj.setPartNo = function(partNo) {
-    		obj.setItemProp("SKU", partNo);
+    		obj.setSKU(partNo);
     		obj.addItemSpecific("Manufacturer Part Number", partNo);
         };
 
         obj.setNsItemId = function(itemId) {
-            obj.setRequestProp("MessageID", 'Add ' + itemId);
     		obj.setItemProp("ApplicationData", itemId);
         };
         
-		obj.setItemProp('PayPalEmailAddress', obj.getEnvironment().payPalEmail);
+		obj.setSKU = function(sku) {
+		    return obj.setItemProp('SKU', sku);
+		};
+	    
+		obj.setItemID = function(id) {
+		    return obj.setItemProp('ItemID', id);
+		};
+		
+		obj.setQuantity = function(id) {
+		    return obj.setItemProp('Quantity', id);
+		};
         
+		return obj;
+	};
+	
+	apiet.makeAddFixedPriceItemRequest = function (env) {
+		var itemJson = {
+	      "ApplicationData": '',
+	      "Country": "US",
+	      "Currency": "USD",
+	      "Description": '',
+	      "HitCounter": "HiddenStyle",
+	      "ListingDuration": "GTC",
+	      "ListingType": "FixedPriceItem",
+	      "Location": "Dallas, TX",
+	      "PaymentMethods": "PayPal",
+	      "PayPalEmailAddress": '',
+	      "PrimaryCategory": { "CategoryID": '' },
+	      "PrivateListing": "false",
+	      "Quantity": '',
+	      "PrivateNotes": '',
+	      "ShippingDetails": {
+	        "ApplyShippingDiscount": "false",
+	        "CalculatedShippingRate": {
+	          "WeightMajor": {
+	            "@measurementSystem": "English",
+	            "@unit": "lbs",
+	            "#text": "0"
+	          },
+	          "WeightMinor": {
+	            "@measurementSystem": "English",
+	            "@unit": "oz",
+	            "#text": "0"
+	          }
+	        },
+	        "SalesTax": {
+	          "SalesTaxPercent": "0.0",
+	          "ShippingIncludedInTax": "false"
+	        },
+	        "ShippingServiceOptions": {
+	          "ShippingService": "UPSGround",
+	          "ShippingServiceCost": {
+	            "@currencyID": "USD",
+	            "#text": "0.0"
+	          },
+	          "ShippingServiceAdditionalCost": {
+	            "@currencyID": "USD",
+	            "#text": "0.0"
+	          },
+	          "ShippingServicePriority": "1",
+	          "FreeShipping": "true"
+	        },
+	        "ShippingType": "Flat",
+	        "ThirdPartyCheckout": "false",
+	        "ShippingDiscountProfileID": "0",
+	        "InternationalShippingDiscountProfileID": "0",
+	        "SellerExcludeShipToLocationsPreference": "true"
+	      },
+	      "ShipToLocations": "US",
+	      "Site": "eBayMotors",
+	      "StartPrice": '',
+	      "SubTitle": '',
+	      "Title": '',
+	      "SKU": '',
+	      "PostalCode": "75019",
+	      "DispatchTimeMax": "5",
+	      "ReturnPolicy": {
+	        "RefundOption": "MoneyBack",
+	        "ReturnsWithinOption": "Days_30",
+	        "ReturnsAcceptedOption": "ReturnsAccepted",
+	        "Description": "Returns accepted before installation",
+	        "WarrantyOfferedOption": "WarrantyOffered",
+	        "WarrantyTypeOption": "ManufacturerWarranty",
+	        "WarrantyDurationOption": "Months_1",
+	        "ShippingCostPaidByOption": "Buyer",
+	        "RestockingFeeValueOption": "Percent_15"
+	      },
+	      "InventoryTrackingMethod": "SKU",
+	      "ConditionID": "1000",
+	      "ShippingPackageDetails": {
+	        "ShippingIrregular": "false",
+	        "ShippingPackage": "USPSLargePack",
+	        "MeasurementUnit": "English",
+	        "WeightMajor": "15",
+	        "WeightMinor": "0"
+	      },
+	      "OutOfStockControl": "true"
+	    };
+
+		var obj = apiet.makeFixedPriceItemRequest('AddFixedPriceItem', itemJson, env);
+
+		obj.setItemProp('PayPalEmailAddress', obj.getEnvironment().payPalEmail);
+		
 		return obj;
 	};
 	
@@ -382,8 +529,13 @@
 		return obj;
 	};
 	
-}( this.jPw.apiet = this.jPw.apiet || {}));
+	apiet.makeReviseFixedPriceItemRequest = function (env) {
+		var obj = apiet.makeFixedPriceItemRequest('ReviseFixedPriceItem', {}, env);
+		return obj;
+	};
 	
+}( this.jPw.apiet = this.jPw.apiet || {}));
+
 (function(apiet) {
 
 	apiet.makeGetItemRequest = function (env) {
@@ -406,7 +558,8 @@
 		    var xml = eBayResp.getBody();
 			
 		    var xmlObj = nlapiStringToXML(xml);
-		    var viewItemURL = nlapiSelectValue(xmlObj, '//nlapi:ViewItemURL');
+		    
+		    var viewItemURL = obj.getAnyVal(xmlObj, 'ViewItemURL');		    //nlapiSelectValue(xmlObj, '//nlapi:ViewItemURL');
 		    
 		    return viewItemURL;
 		};
@@ -440,7 +593,54 @@
 			.addOutputSelector("ItemArray.Item.Title")
 			.addOutputSelector("ItemArray.Item.ItemID")
 			.addOutputSelector("ItemArray.Item.ListingDetails.ViewItemURL")
-			.addOutputSelector("ItemArray.Item.SellingStatus.CurrentPrice");			
+			.addOutputSelector("ItemArray.Item.Quantity")
+			.addOutputSelector("ItemArray.Item.SellingStatus.CurrentPrice");		
+		
+		obj.addSkuFilter = function(sku) {
+			obj.setRequestProp("SKUArray", {"SKU": sku});
+		};
+		
+		return obj;
+	};
+	
+}( this.jPw.apiet = this.jPw.apiet || {}));
+
+(function(apiet) {
+
+	apiet.makeUploadSiteHostedPicturesRequest = function (env) {
+		var obj = apiet.makeApiRequest('UploadSiteHostedPictures', env); 
+		
+		obj.setRequestProp('PictureSet', 'Supersize');
+
+		obj.setExternalPictureURL = function(url) {
+		    return obj.setRequestProp('ExternalPictureURL', url);
+		};
+	    
+		obj.setPictureName = function(name) {
+		    return obj.setRequestProp('PictureName', name);
+		};
+		
+		return obj;
+	};
+	
+}( this.jPw.apiet = this.jPw.apiet || {}));
+
+(function(apiet) {
+
+	apiet.makeEndFixedPriceItemRequest = function (env) {
+		var obj = apiet.makeApiRequest('EndFixedPriceItem', env); 
+		
+		obj.setRequestProp('EndingReason', 'NotAvailable');
+		obj.setRequestProp('WarningLevel', 'High');
+
+		obj.setSKU = function(sku) {
+		    return obj.setRequestProp('SKU', sku);
+		};
+	    
+		obj.setItemID = function(id) {
+			obj.setRequestProp('MessageID', id);
+		    return obj.setRequestProp('ItemID', id);
+		};
 		
 		return obj;
 	};

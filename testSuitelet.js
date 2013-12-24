@@ -3,9 +3,322 @@
  *
  */
 
-
 var test = function (request, response) {
- 	var ctlgs = undefined;// [3];
+	var logExecutionMsg = function(e, errorDetailMsg) {
+		var msg = new String();
+		msg += errorDetailMsg;
+		if(e.getCode != null) {
+			msg += " "+ e.getDetails();
+		} else {
+			msg += " "+ e.toString();
+		};
+		return msg;  
+	};
+
+	var addMsg = function(msg, logType) {
+		nlapiLogExecution(logType ||'DEBUG', msg);
+		//list = list + '\n' + msg;
+	};
+		
+	var reSched = function(cntx) {
+		var context = cntx ||nlapiGetContext();
+
+		var status = nlapiScheduleScript(context.getScriptId(), context.getDeploymentId());
+		 
+		if( status == 'QUEUED' ) { 
+			addMsg('Programatically Scheduled Script:'+context.getScriptId()+' Delpoyment:'+context.getDeploymentId(), 'AUDIT');
+			return true;
+		} else {
+			addMsg('Failed to Programatically Scheduled Script:'+context.getScriptId()+' Delpoyment:'+context.getDeploymentId(), 'ERROR');
+			return true;
+		};
+	};
+	
+	var checkReSched = function(idx, cntx) {
+		if (idx % 10 == 0) {
+			var context = cntx ||nlapiGetContext();
+			if ( context.getRemainingUsage() < 100) {
+				return reSched(cntx); 
+			} else {
+				return false;
+			};
+			
+		} else {
+			return false;
+		};
+	};
+	
+	var search = jPw.parts.LeaSrchObj( 
+			[ 
+			  ['isinactive', 'is', 'F'],
+			  'and',
+			  ['type', 'is', 'InvtPart'], 
+			  'and', 
+			  ['custitem_prod_cat', 'is', '9'], 
+			  'and', 
+			  ['custitem_parent_item', 'is', 'F'],
+			  'and', 
+			  ['custitem_ebay_candidate', 'is', 'T'],
+			  'and', 
+			  [
+			   ['custitem_ebay_listing_id', 'is', '@NONE@'],
+			   'or',
+			   ['custitem_ebay_listing_url', 'is', '@NONE@'],
+			   'or',
+			   ['not', ['custitem_item_prod_ctlg', 'anyof', jPw.ebay.ctlgId] ],
+			  ]
+			], 
+			[new nlobjSearchColumn('name'),
+			 new nlobjSearchColumn('custitem_leather_kit_type'),
+			 new nlobjSearchColumn('custitem_prod_cat'),
+			 new nlobjSearchColumn('custitem_ebay_candidate'),
+			 new nlobjSearchColumn('custitem_item_prod_ctlg'),
+			 new nlobjSearchColumn('custitem_ebay_listing_id'),
+			 new nlobjSearchColumn('custitem_ebay_listing_url'),		 
+			 new nlobjSearchColumn('storedisplayimage'),
+			 new nlobjSearchColumn('storedisplaythumbnail')
+			]);
+	
+	var resultSet = search.runSearch();
+	var max = 10;
+	var loopAdds = function (cntx) {
+		var results = resultSet.getResults(0, max+1);
+		if ((results) && (results.length > 0)) {
+			var count = Math.min(results.length, (max+1));
+			
+			var percent;
+			//context.setPercentComplete(0.00);   
+			//context.getPercentComplete();  // displays percentage complete
+			
+			for (var i = 0; i < count; i++) {
+				if (checkReSched(i, cntx)) {
+					return false;
+				};
+				
+				var part = jPw.parts.makeLeaPartObj( results[i] );
+				
+
+				xxx.img_id = part.getValue('storedisplayimage');
+				xxx.thumb_id = part.getValue('storedisplaythumbnail');
+				
+				xxx.ebay_img_url = jPw.ebay.addUpdEbayImage(xxx.img_id);
+				xxx.ebay_thumb_url = jPw.ebay.addUpdEbayImage(xxx.thumb_id);
+				
+				break;
+
+				//var partno = part.basePartNo;
+				//var internalid = part.getId(); 
+				//jPw.ebay.addUpdListing(partno, internalid);
+				
+				percent = Math.round( (100*(i+1)) / count );
+				//context.setPercentComplete( percent );     // calculate the results
+				//context.getPercentComplete();  // displays percentage complete  
+				addMsg('Percent: '+percent, 'DEBUG');
+			};
+			return (results.length > max);
+		} else {
+			return false;
+		};
+		
+	};
+	
+	var xxx = {};
+	var context = nlapiGetContext();
+	if (loopAdds(context)) {
+		reSched (context);
+	};
+	
+	jPw.jsonResponse( request, response, {xxx: xxx} );
+	
+};
+
+var clearEbayCatalog = function () {
+	var results = nlapiSearchRecord('item', null, 
+			[ new nlobjSearchFilter('custitem_item_prod_ctlg', null, 'anyof', '3'),
+			new nlobjSearchFilter('custitem_ebay_listing_url', null, 'isempty')
+			], 
+			[ new nlobjSearchColumn('name')]);
+
+	jPw.each(results, function() {
+		var rec = this;
+		var id = rec.getId();
+		nlapiSubmitField('serializedinventoryitem', id, 'custitem_item_prod_ctlg', null);
+	});
+
+};
+
+var eBayUploadPictures = function (request, response) {	
+	
+	var api = jPw.apiet.makeGetItemRequest();
+	api.setRequestProp("ItemID", '110127617073');
+	api.addOutputSelector('Item.ItemID')
+		.addOutputSelector("Item.SKU")
+		.addOutputSelector("Item.Quantity")
+		.addOutputSelector('Item.ApplicationData')
+		.addOutputSelector("Item.ListingDetails.ViewItemURL")
+		;
+
+	api.callApiCallback( 
+		function(obj){
+			response.setContentType('XMLDOC');
+		    response.write( obj.respXmlStr );
+		}, 
+		function(obj){ 
+			var x = '<fail>fail</fail>'+obj.respXmlStr;
+			response.setContentType('PLAINTEXT', 'error.txt', 'inline');
+			response.write( x );
+			
+			
+		}
+	);	
+
+	
+	//var xmlStr = api.getXmlEncode();
+	//response.setContentType('XMLDOC');
+    //response.write( xmlStr );
+	return;
+	
+	var imgId = 6379;
+	
+	var file = nlapiLoadFile(imgId);
+	if (!file) {
+		var msg = 'Failed to find image file for id "'+imgId+'".';
+		nlapiLogExecution('ERROR', msg);
+		throw nlapiCreateError('FILE_ID_MISSING', msg);
+		return;
+	};
+	
+	var api = jPw.apiet.makeUploadSiteHostedPicturesRequest(); //jPw.apiet.makeEnvProduction()
+
+	api.setExternalPictureURL('http://roadwire.biz/netsuitefile/' + imgId);
+	api.setPictureName(file.getName());
+	
+	
+	api.callApiCallback( 
+		function(obj){
+			var fullUrl = obj.getRespAnyVal('FullURL');
+			var pictureName = obj.getRespAnyVal('PictureName');
+			var pictureSet = obj.getRespAnyVal('PictureSet');
+			var pictureFormat = obj.getRespAnyVal('PictureFormat');
+			
+			var results = nlapiSearchRecord('customrecord_ebay_image', null, 
+					[ new nlobjSearchFilter('custrecord_ebay_img_ns_img_id', null, 'is', imgId)], 
+					[ new nlobjSearchColumn('name')]);
+			
+			var ebImgRec
+			if ((results) && (results.length > 0)) {
+				ebImgRec = nlapiLoadRecord(results[0].getRecordType(), results[0].getId());
+			} else {
+				ebImgRec = nlapiCreateRecord('customrecord_ebay_image');
+				ebImgRec.setFieldValue('custrecord_ebay_img_ns_img_id', imgId);		
+			};
+			
+			ebImgRec.setFieldValue('name', pictureName);
+			ebImgRec.setFieldValue('custrecord_ebay_img_fullurl', fullUrl);
+			ebImgRec.setFieldValue('custrecord_ebay_img_pictfrmt', pictureFormat);
+			ebImgRec.setFieldValue('custrecord_ebay_img_pictset', pictureSet);
+			
+			var id = nlapiSubmitRecord(ebImgRec, true);
+			
+			jPw.jsonResponse( request, response, {
+				id: id,
+				fullUrl: fullUrl,
+				pictureName: pictureName,
+				pictureSet: pictureSet,
+				pictureFormat: pictureFormat
+			});
+			
+			//var ebImgrec = nlapiCreateRecord('customrecord_ebay_image');
+			//ptrnRec.setFieldValue('name', ptrn);
+			
+			//response.setContentType('PLAINTEXT', 'test.txt', 'inline');
+			//response.write( 'ebay url: '+ url );
+			
+			//response.setContentType('XMLDOC');
+		    //response.write( obj.respXmlStr );
+		}, 
+		function(obj){ 
+			var x = '<fail>fail</fail>'+obj.respXmlStr;
+			response.setContentType('PLAINTEXT', 'error.txt', 'inline');
+			response.write( x );
+		}
+	);	
+	
+	//jPw.jsonResponse( request, response, {url: url, headers: headers} );
+
+};
+
+var completeSaleRequest = function (request, response) {
+    var url = 'https://api.sandbox.ebay.com/ws/api.dll';
+
+    var headers = new Array();
+    headers['X-EBAY-API-COMPATIBILITY-LEVEL'] = '841';
+    headers['X-EBAY-API-DEV-NAME'] = '481891e7-46d4-4a19-8992-bbfef42842b7';
+    headers['X-EBAY-API-APP-NAME'] = 'Roadwire-fb1b-4244-80f7-0a9a8f918293';
+    headers['X-EBAY-API-CERT-NAME'] = '99fc89de-c5a8-4594-97a5-9974d1908432';
+    headers['X-EBAY-API-SITEID'] = '100';
+    headers['X-EBAY-API-CALL-NAME'] = 'CompleteSale';
+
+    var token = 'AgAAAA**AQAAAA**aAAAAA**9DJPUg**nY+sHZ2PrBmdj6wVnY+sEZ2PrA2dj6wFk4GhC5CAogudj6x9nY+seQ**3V0CAA**AAMAAA**PcqkIx0m6ICTidyzGK3gC3XBer7ww1EUAHhl2EJEopHUCw6kygGDClF2AjEvZj3W21H/aRQfJfr5VSJ6ZZcUj6yb1V73FgmhWYFEEDr3pTEe4AXtBPQmxBNjj2DvfeueJoqT59dVJRGWjeqL/VvgyV7+j92sz0jwMIc6G6m4dmTeYRkDgZFgh2W12GadVv58Tka1iul8w2li0J0O27FNhuuk05fTdKKW4G0DQPz10YqPCP9yRcZwF3fnB246rH2YxjiDhdQHvi4JevnDiiW6D0ZcfAlDBnH8sjhbh7SrqtU+ngpkJlLga5jrwTyXIWYQJtKMB2bQxf2R0HQYxWmKqTocnJgQk2K/E738qggcZXVBFS9VczznHSoDAXSIhJSfZ7RqXeesF1ATadaCiK/yxdmk/pH4+jAiiAiMuw6k0L4g5kSkToE3jFrM7zS77GO1FeET+jQfoZ1UA/jqkFVcZ2DRqEXX7qSnUfIH6plNm6K+hwKv4qsqwLhPLnCChP0Oms0wZlpozMeTFlg7qbXYvsXOGigguhhoSZyiwFc0tdi5MX2B6WO66loHJuaSMfeTMVwztfzjF5rVUtHh0LU38Mgdg5kG+EYGsg+wectXZ1363U87KlO8CnGKGq9wPekdapyb/qJdfg8UmFtnryjseV39yn+Ee5IflOK9rT5ngO5rJTa3uAvFaT0N1/xUvZtPCQBDde5GMzbJtQMJJyMCU8NmlmwN2bGVJMmhz4vnMHXj7s7X2Pbevq9fcHMwzw/y'; 
+
+    var payload = '<?xml version="1.0" encoding="utf-8"?>'+
+    '<CompleteSaleRequest xmlns="urn:ebay:apis:eBLBaseComponents">'+
+    '<RequesterCredentials>'+
+	'<eBayAuthToken>AgAAAA**AQAAAA**aAAAAA**9DJPUg**nY+sHZ2PrBmdj6wVnY+sEZ2PrA2dj6wFk4GhC5CAogudj6x9nY+seQ**3V0CAA**AAMAAA**PcqkIx0m6ICTidyzGK3gC3XBer7ww1EUAHhl2EJEopHUCw6kygGDClF2AjEvZj3W21H/aRQfJfr5VSJ6ZZcUj6yb1V73FgmhWYFEEDr3pTEe4AXtBPQmxBNjj2DvfeueJoqT59dVJRGWjeqL/VvgyV7+j92sz0jwMIc6G6m4dmTeYRkDgZFgh2W12GadVv58Tka1iul8w2li0J0O27FNhuuk05fTdKKW4G0DQPz10YqPCP9yRcZwF3fnB246rH2YxjiDhdQHvi4JevnDiiW6D0ZcfAlDBnH8sjhbh7SrqtU+ngpkJlLga5jrwTyXIWYQJtKMB2bQxf2R0HQYxWmKqTocnJgQk2K/E738qggcZXVBFS9VczznHSoDAXSIhJSfZ7RqXeesF1ATadaCiK/yxdmk/pH4+jAiiAiMuw6k0L4g5kSkToE3jFrM7zS77GO1FeET+jQfoZ1UA/jqkFVcZ2DRqEXX7qSnUfIH6plNm6K+hwKv4qsqwLhPLnCChP0Oms0wZlpozMeTFlg7qbXYvsXOGigguhhoSZyiwFc0tdi5MX2B6WO66loHJuaSMfeTMVwztfzjF5rVUtHh0LU38Mgdg5kG+EYGsg+wectXZ1363U87KlO8CnGKGq9wPekdapyb/qJdfg8UmFtnryjseV39yn+Ee5IflOK9rT5ngO5rJTa3uAvFaT0N1/xUvZtPCQBDde5GMzbJtQMJJyMCU8NmlmwN2bGVJMmhz4vnMHXj7s7X2Pbevq9fcHMwzw/y</eBayAuthToken>'+
+	'</RequesterCredentials>'+
+	'<WarningLevel>High</WarningLevel>'+
+	'<FeedbackInfo>'+
+		'<CommentType>Positive</CommentType>'+
+		'<CommentText>Roadwire most valued buyer. Thank you Test User.</CommentText>'+
+		'<TargetUser>testuser_wesley.alford</TargetUser>'+
+	'</FeedbackInfo>'+
+	'<OrderLineItemID>110127610770-27142761001</OrderLineItemID>'+
+	'<Shipment>'+
+	    '<Notes>Shipped UPS Ground to Postal Code 98102</Notes>'+
+	    '<ShipmentTrackingDetails>'+
+		    '<ShipmentTrackingNumber>TRK65321</ShipmentTrackingNumber>'+
+		    '<ShippingCarrierUsed>UPS</ShippingCarrierUsed>'+
+	    '</ShipmentTrackingDetails>'+
+	'</Shipment>'+
+	'<Shipped>true</Shipped>'+
+	'</CompleteSaleRequest>';
+
+    var eBayResp = nlapiRequestURL( url, payload, headers);	
+
+    var body = eBayResp.getBody();
+    var responseXML = nlapiStringToXML(body);
+
+    var ack = nlapiSelectValue(responseXML, '//nlapi:Ack');
+    
+    response.setContentType('XMLDOC');
+    response.write( responseXML );
+
+};
+
+/*
+<CompleteSaleRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+<RequesterCredentials>
+<eBayAuthToken>AgAAAA**AQAAAA**aAAAAA**9DJPUg**nY+sHZ2PrBmdj6wVnY+sEZ2PrA2dj6wFk4GhC5CAogudj6x9nY+seQ**3V0CAA**AAMAAA**PcqkIx0m6ICTidyzGK3gC3XBer7ww1EUAHhl2EJEopHUCw6kygGDClF2AjEvZj3W21H/aRQfJfr5VSJ6ZZcUj6yb1V73FgmhWYFEEDr3pTEe4AXtBPQmxBNjj2DvfeueJoqT59dVJRGWjeqL/VvgyV7+j92sz0jwMIc6G6m4dmTeYRkDgZFgh2W12GadVv58Tka1iul8w2li0J0O27FNhuuk05fTdKKW4G0DQPz10YqPCP9yRcZwF3fnB246rH2YxjiDhdQHvi4JevnDiiW6D0ZcfAlDBnH8sjhbh7SrqtU+ngpkJlLga5jrwTyXIWYQJtKMB2bQxf2R0HQYxWmKqTocnJgQk2K/E738qggcZXVBFS9VczznHSoDAXSIhJSfZ7RqXeesF1ATadaCiK/yxdmk/pH4+jAiiAiMuw6k0L4g5kSkToE3jFrM7zS77GO1FeET+jQfoZ1UA/jqkFVcZ2DRqEXX7qSnUfIH6plNm6K+hwKv4qsqwLhPLnCChP0Oms0wZlpozMeTFlg7qbXYvsXOGigguhhoSZyiwFc0tdi5MX2B6WO66loHJuaSMfeTMVwztfzjF5rVUtHh0LU38Mgdg5kG+EYGsg+wectXZ1363U87KlO8CnGKGq9wPekdapyb/qJdfg8UmFtnryjseV39yn+Ee5IflOK9rT5ngO5rJTa3uAvFaT0N1/xUvZtPCQBDde5GMzbJtQMJJyMCU8NmlmwN2bGVJMmhz4vnMHXj7s7X2Pbevq9fcHMwzw/y</eBayAuthToken>
+</RequesterCredentials>
+<WarningLevel>High</WarningLevel>
+<FeedbackInfo>
+	<CommentType>Positive</CommentType>
+	<CommentText>Roadwire most valued buyer. Thank you Test User.</CommentText>
+	<TargetUser>testuser_wesley.alford</TargetUser>
+</FeedbackInfo>
+<OrderLineItemID>110127796493-27152503001</OrderLineItemID>
+<Shipment>
+    <Notes>Shipped UPS Ground to Postal Code 98102</Notes>
+    <ShipmentTrackingDetails>
+	    <ShipmentTrackingNumber>TRK123</ShipmentTrackingNumber>
+	    <ShippingCarrierUsed>UPS</ShippingCarrierUsed>
+    </ShipmentTrackingDetails>
+</Shipment>
+<Shipped>true</Shipped>
+</CompleteSaleRequest>
+*/
+
+/*var ctlgs = undefined;// [3];
 	var makeId = 1;
 	var year = '2014';
 	var yrIds = [2];
@@ -17,47 +330,119 @@ var test = function (request, response) {
 	var intColId = 10; //ash
 	var custId = 5753;
 	var itemId = 329792;
+*/
+var attachment = function (request, response) {
+	
+	function errHtml(msg) {
+		nlapiLogExecution('ERROR', msg, msg);
+		response.setContentType('PLAINTEXT', 'attachErr.txt', 'inline');
+		response.write( msg );
+	};
 
-	//jPw.slctr.modelsResult(makeId, year)
+	var record = request.getParameter('record');
+	var id = request.getParameter('id');
+	var name = request.getParameter('name');
+	var folder = request.getParameter('folder');
+	var filename = request.getParameter('filename');
+	var filetype = request.getParameter('filetype');
 	
-	var yrIds = jPw.cars.getYrIds(year);
+	var attach;		
+
+	if (record) {
+		var attachs = recordAttchs(record, id, name, folder, filename, filetype);
+		if (Array.isArray(attachs)) {
+			attach = attachs[0];
+		} else {
+			errHtml(attachs);
+			return;
+		};
+	} else {
+		errHtml('missing "record" parameters');
+		return;
+	};
 	
-	//results = jPw.cars.getCarYrSearch(makeId, yrIds, ctlgs)
-	//.addCol(new nlobjSearchColumn('custrecord_model'))
-	//.addCol(new nlobjSearchColumn('name', 'custrecord_model'))
-	//.results();
-/*
-	var search = jPw.SrchObj('customrecord_current_classic_car', 
-			null, 
-			[new nlobjSearchColumn('name').setSort( false )]
-		)
-		//.addFilt(new nlobjSearchFilter('internalid', 'custrecord_car_type', 'noneof', '@NONE@'))
-		.addFilt(new nlobjSearchFilter('custrecord_make', null, 'is', makeId))
-		.addFilt(new nlobjSearchFilter('custrecord_year', null, 'anyof', yrIds))
+	writeFile(response, attach.id);
+};
+
+var file = function (request, response) {
+	var fileid = request.getParameter('id');
+	var filepath = request.getParameter('path');
+	if (fileid) {
+		writeFile(response, fileid);
+	} else if (filepath) {
+		writeFile(response, filepath);
+	} else {
+		response.setContentType('PLAINTEXT', 'fileErr.txt', 'inline');
+		response.write( 'missing "id", or "path" parameters' );
+	};
+};
+
+function writeFile(response, id) {
+	var file = nlapiLoadFile(id);
+	if (file) { 
+		response.setContentType(file.getType(), file.getName(), 'inline');
+		response.write( file.getValue() ); 
+	} else {
+		response.setContentType('PLAINTEXT', 'err.txt', 'inline');
+		response.write( 'no file returned for id "'+id+'"' );
+	};
+};
+
+function recordAttchs(record, id, name, folder, filename, filetype) {
+	var recordId; 
+	
+	switch(record){
+	case 'pattern': recordId = 'customrecord_leather_pattern'; break;
+	default: 
+		return 'invalid record parameter "'+ record +'"';
+		break;
+	};
+	
+	if ((!id) && (!name)){
+		return 'missing "id" and "name" parameter';
+	}
+	
+	var key;
+	var filts = [];
+	if (id) {
+		key = id;
+		filts.push( new nlobjSearchFilter('internalid', null, 'is', id) );
+	} else if (name) {
+		key = name;
+		filts.push( new nlobjSearchFilter('name', null, 'is', name) );
+	};
+
+	var records = nlapiSearchRecord(recordId, null, filts,
+	[	 new nlobjSearchColumn('internalid', 'file'),
+	 	new nlobjSearchColumn('name', 'file'),
+	 	new nlobjSearchColumn('folder', 'file'),
+	 	new nlobjSearchColumn('filetype', 'file'),
+	]);	
+	
+	if ((!records) || (records.length < 1)) {
+		return 'no attachemnts for "' + record + '" "' + key +'"' ;
+	};
+
+	var attachs = jPw.map(records, function () {
+		var attch = {
+				id: this.getValue('internalid', 'file'),
+				folder: this.getText('folder', 'file'),
+				filename: this.getValue('name', 'file'),
+				filetype: this.getValue('filetype', 'file')
+		};
 		
-		.addCol(new nlobjSearchColumn('custrecord_model'))
-		.addCol(new nlobjSearchColumn('name', 'custrecord_model'))
-
-		;
-*/	
-	var items = nlapiSearchRecord('customrecord_current_classic_car', null, 
-			[
-			 new nlobjSearchFilter('custrecord_make', null, 'is', makeId),
-			 //new nlobjSearchFilter('custrecord_year', null, 'anyof', yrIds),
-			 new nlobjSearchFilter('custrecord_model', null, 'is', modelId),
-			],
-			[
-			new nlobjSearchColumn('name').setSort( false ),
-			new nlobjSearchColumn('custrecord_year'),
-			new nlobjSearchColumn('custrecord_model'),
-			new nlobjSearchColumn('name', 'custrecord_model'),
-			]);	
+		if ( ((!folder) || (folder == attch.folder))
+		&& ((!filename) || (filename == attch.filename))
+		&& ((!filetype) || (filetype == attch.filetype)) ) {
+			return attch;
+		}
+	});
 	
+	if (attachs.length < 1) {
+		return 'no attachemnts for folder "' + folder + '" ", filename "' + filename + '" ", filetype "' + filetype +'"' ;
+	};
 	
-	var results = items;//search.results();
-	
-	jPw.jsonResponse( request, response, {results: results} );
-	
+	return attachs;
 };
 
 var activeEbayListings = function (request, response) {
@@ -72,7 +457,7 @@ var activeEbayListings = function (request, response) {
     //return;
 	
 	api.callApiCallback( 
-		function(xmlObj){
+		function(obj){
 			//var items = [];
 			
 			var list = nlapiCreateList('Active eBay Listings');
@@ -85,7 +470,7 @@ var activeEbayListings = function (request, response) {
 		   	list.addColumn('price', 'text', 'price');
 		 	
 			var node;
-			var itemNodes = nlapiSelectNodes(xmlObj, '//nlapi:Item');
+			var itemNodes = nlapiSelectNodes(obj.respXmlObj, '//nlapi:Item');
 			for (var i = 0; i < itemNodes.length; i++) {
 				node = itemNodes[i];
 				
@@ -103,8 +488,8 @@ var activeEbayListings = function (request, response) {
 			response.writePage( list );
 			//jPw.jsonResponse( request, response, {count: items.length,  items: items} );
 		}, 
-		function(xmlObj){ jPw.jsonResponse( request, response, {result: 'warn'} );},
-		function(xmlObj){ jPw.jsonResponse( request, response, {result: 'fail'} );}
+		function(obj){ jPw.jsonResponse( request, response, {result: 'warn'} );},
+		function(obj){ jPw.jsonResponse( request, response, {result: 'fail'} );}
 	);	
 
 };
@@ -125,7 +510,7 @@ return;
 	var parts = jPw.parts.eBayPartsList(search, false, 1);
 	var part = parts[0];
 	
-	addItemReq = loadLeaReq(part);
+	var addItemReq = loadLeaReq(part);
 
     addItemReq.setRequestProp("WarningLevel", "High");
 	
@@ -171,7 +556,7 @@ return;
 };
 
 function loadLeaReq(part) {
-	var addItemReq = jPw.apiet.makeLeatherItemRequest(jPw.apiet.makeEnvSandBox());
+	var addItemReq = jPw.apiet.makeLeatherItemRequest();
 
 	addItemReq.setPartNo(part.base_part);
     addItemReq.setNsItemId(part.item_id);
@@ -285,26 +670,6 @@ var addEbayLeaListing = function (request, response) {
 };
 
 var eBayFitment = function (request, response) {
-/*    var url = 'https://api.sandbox.ebay.com/ws/api.dll';
-
-    var headers = new Array();
-    headers['X-EBAY-API-COMPATIBILITY-LEVEL'] = '841';
-    headers['X-EBAY-API-DEV-NAME'] = '481891e7-46d4-4a19-8992-bbfef42842b7';
-    headers['X-EBAY-API-APP-NAME'] = 'Roadwire-fb1b-4244-80f7-0a9a8f918293';
-    headers['X-EBAY-API-CERT-NAME'] = '99fc89de-c5a8-4594-97a5-9974d1908432';
-    headers['X-EBAY-API-SITEID'] = '0';
-    headers['X-EBAY-API-CALL-NAME'] = 'GetSellingManagerSoldListings';
-
-    var token = 'AgAAAA**AQAAAA**aAAAAA**9DJPUg**nY+sHZ2PrBmdj6wVnY+sEZ2PrA2dj6wFk4GhC5CAogudj6x9nY+seQ**3V0CAA**AAMAAA**PcqkIx0m6ICTidyzGK3gC3XBer7ww1EUAHhl2EJEopHUCw6kygGDClF2AjEvZj3W21H/aRQfJfr5VSJ6ZZcUj6yb1V73FgmhWYFEEDr3pTEe4AXtBPQmxBNjj2DvfeueJoqT59dVJRGWjeqL/VvgyV7+j92sz0jwMIc6G6m4dmTeYRkDgZFgh2W12GadVv58Tka1iul8w2li0J0O27FNhuuk05fTdKKW4G0DQPz10YqPCP9yRcZwF3fnB246rH2YxjiDhdQHvi4JevnDiiW6D0ZcfAlDBnH8sjhbh7SrqtU+ngpkJlLga5jrwTyXIWYQJtKMB2bQxf2R0HQYxWmKqTocnJgQk2K/E738qggcZXVBFS9VczznHSoDAXSIhJSfZ7RqXeesF1ATadaCiK/yxdmk/pH4+jAiiAiMuw6k0L4g5kSkToE3jFrM7zS77GO1FeET+jQfoZ1UA/jqkFVcZ2DRqEXX7qSnUfIH6plNm6K+hwKv4qsqwLhPLnCChP0Oms0wZlpozMeTFlg7qbXYvsXOGigguhhoSZyiwFc0tdi5MX2B6WO66loHJuaSMfeTMVwztfzjF5rVUtHh0LU38Mgdg5kG+EYGsg+wectXZ1363U87KlO8CnGKGq9wPekdapyb/qJdfg8UmFtnryjseV39yn+Ee5IflOK9rT5ngO5rJTa3uAvFaT0N1/xUvZtPCQBDde5GMzbJtQMJJyMCU8NmlmwN2bGVJMmhz4vnMHXj7s7X2Pbevq9fcHMwzw/y'; 
-
-    payload = '<?xml version="1.0" encoding="utf-8"?>'+
-    '<GetSellingManagerSoldListingsRequest xmlns="urn:ebay:apis:eBLBaseComponents">'+
-    '<RequesterCredentials>'+
-    '<eBayAuthToken>'+token+'</eBayAuthToken>'+
-    '</RequesterCredentials>'+
-    '<Filter>PaidNotShipped</Filter>'+
-    '</GetSellingManagerSoldListingsRequest>?';
-*/
 	var url = 'http://svcs.ebay.com/services/marketplacecatalog/ProductMetadataService/v1';
 
     var headers = new Array();
@@ -396,7 +761,7 @@ function ebaycolors(request, response)
 	    	name: part.part_no,
 	    	description: part.descr,
 	    	color: part.color,
-	    	image: part.img_url,
+	    	image: part.img_url, // 'http://i.ebayimg.com/00/s/MTAwWDIyNA==/z/dEQAAOxyVLNSp4qk/$_1.JPG?set_id=8800004005', //
 	    	img_url: part.img_url,
 	    	item_url: jPw.getSysUrlDomain() + '/app/common/item/item.nl?itemtype=InvtPart&id=' + part.item_id,
 	    	swatch: part.thumb_url,
@@ -832,6 +1197,8 @@ function suitelet(request, response){
 	var type = request.getParameter('type');
 	switch(type){
 		case 'test': test(request, response); break;
+		case 'attachment': attachment(request, response); break;
+		case 'file': file(request, response); break;
 		case 'ebaycolors': ebaycolors( request, response);	break;
 		case 'ebay': ebayPartsFile( request, response);	break;
 		case 'list': demoList( request, response);	break;

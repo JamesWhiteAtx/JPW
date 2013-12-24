@@ -324,6 +324,32 @@
 		;
 	};
 	
+	jPw.sumbitMultiVals = function (vals, result, field, join) {
+		var curValStr = result.getValue(field, join);
+		var curVals = curValStr ? curValStr.split(',') : [];
+		var missingVals = jPw.missingFrom(vals, curVals);
+		if (missingVals.length > 0) {
+			var newVals = curVals.concat(missingVals);
+			var submtFld = field;
+			if (join) {
+				submtFld = join+'.'+submtFld;
+			};
+			
+			//nlapiSubmitField(result.getRecordType(), result.getId(), submtFld, newVals);
+			var record = nlapiLoadRecord(result.getRecordType(), result.getId());
+			if (record) {
+				record.setFieldValues(submtFld, newVals);
+				nlapiSubmitRecord(record, true);
+				return true;
+			} else {
+				return false;
+			};
+		} else {
+			return false;
+		};
+	};
+	
+	
 }( this.jPw = this.jPw || {} ));
 
 (function(jPw, undefined) {

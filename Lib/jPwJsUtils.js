@@ -87,19 +87,36 @@
 	/**
      * @memberOf jPw
      */
-	jPw.indexOfEval = function (arr, func) {
+	jPw.indexOfEval = function (arr, fcn) {
 		for (var i = 0, len = arr.length; i < len; i++) {
-			if (func(arr[i])) {
+			if (fcn(arr[i])) {
 				return i;
 			};
 		};
 		return -1;
 	};
+
+	jPw.find = function(arr, fcn) { 
+		if (!arr || arr.length === 0) return null;
+		for (var i = 0, len = arr.length; i < len; i++) {
+			if (fcn(arr[i])) {			
+				return arr[i];
+			};
+		}
+		return null;
+	};
+	
 	
 	jPw.addOnlyUniqueElm = function(arr, elm) {
-		if (arr.indexOf(elm) === -1) {
-			arr.push(elm);
+		for (var i = 0, len = arr.length; i < len; i++) {
+			if (arr[i] == elm) {
+				return false;
+			};
 		};
+		arr.push(elm);
+		return true;
+		//if (arr.indexOf(elm) === -1) {		//	arr.push(elm);		//	return true;
+		//} else {		//	return false;		//};
 	};
 	
 	jPw.addOnlyUniqueObj = function(arr, obj, eqlFcn) {
@@ -127,6 +144,63 @@
 		return arr[idx];
 	};
 	
+	jPw.missingFrom = function(arrFrm, arrSrch) {
+		if (!arrFrm) {
+			return [];
+		};
+		if (!arrSrch) {
+			return arrFrm;
+		};
+		return jPw.map(arrFrm, function(){
+			var itm = this;
+			for (var i = 0, len = arrSrch.length; i < len; i++) {
+				if (arrSrch[i] == itm) {
+					return;
+				};
+			};
+			return itm;			
+		});
+	};
+	
+	jPw.arrUnion = function(x, y) {
+		var obj = {};
+		for (var i = x.length-1; i >= 0; -- i)
+			obj[x[i]] = x[i];
+		for (var i = y.length-1; i >= 0; -- i)
+			obj[y[i]] = y[i];
+		var res = [];
+		for (var k in obj) {
+			if (obj.hasOwnProperty(k))  // <-- optional
+				res.push(obj[k]);
+		};
+		return res;
+	};
+
+	jPw.arrRemove = function(arr, elm) {
+		if (arr instanceof Array) {
+			//var delIdx = arr.indexOf(elm); // NetSuite has bad habit of changing strings to numbers, so changed this to use the less restrictive comparison so for eg. 3 == '3'
+			var delIdx = -1;
+			for (var i = 0, len = arr.length; i < len; i++) {
+				if (arr[i] == elm) {
+					delIdx = i;
+					break;
+				};
+			};
+			if (delIdx !== -1) {
+				arr.splice(delIdx, 1);
+			};
+			return delIdx;
+		} else {
+			return -1;
+		};
+	};
+	
+	jPw.arrMinusArr = function(arrSrc, arrMinus) {
+		for (var i = 0, len = arrMinus.length; i < len; i++) {
+			jPw.arrRemove(arrSrc, arrMinus[i]);
+		};
+		return arrSrc;
+	};
 	
 	function replacer(key, value) {
 	    if (typeof value === 'number' && !isFinite(value)) {
