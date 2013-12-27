@@ -203,10 +203,17 @@ function suitelet(request, response){
  */
 (function(ebay) {
 	
+	ebay.getEbayCtlgId = function() {
+		var results = nlapiSearchRecord('customlist_product_catalog', null, 
+			[ new nlobjSearchFilter('name', null, 'is', 'eBay Listings')], 
+			[ new nlobjSearchColumn('name')]);
+		return results[0].getId();
+	};	
+	ebay.ctlgId = ebay.getEbayCtlgId();
+
 	ebay.ctlgFldId = 'custitem_item_prod_ctlg';
 	ebay.listIdFldId = 'custitem_ebay_listing_id';
 	ebay.listUrlFldId = 'custitem_ebay_listing_url';
-	ebay.ctlgId = '3';
 	
 	ebay.addEbayItemCtlg = function (parm) {  //{internalId, record, submit}
 		var record;
