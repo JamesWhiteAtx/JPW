@@ -4,6 +4,9 @@
  * Version    Date            Author           Remarks
  * 1.00       07 Oct 2013     james.white
  *
+ * Requires:
+ * eBayTradingApi.js
+ * jPwJsUtils.js
  */
 
 this.jPw = this.jPw || {};
@@ -1261,7 +1264,7 @@ function suitelet(request, response){
 				nlapiLogExecution( 'ERROR', e.getCode(), e.getDetails() );
 				errResp(e.getCode() +': '+ e.getDetails());
 			} else {
-				nlapiLogExecution( 'ERROR', 'Unexpected Error', e.toString() )
+				nlapiLogExecution( 'ERROR', 'Unexpected Error', e.toString() );
 				errResp('Unexpected Error' + '\n' + e.toString());
 			};
 			return;
@@ -1269,3 +1272,40 @@ function suitelet(request, response){
 	};
 }( this.jPw.ebay = this.jPw.ebay || {}));
 
+(function(ebay) {
+	ebay.schedRemoveAllListings = function(type) {
+		
+		var listings = jPw.ebay.getActiveListingArr();
+		
+		if ((!listings) && (listings.length == 1)) {
+			return;
+		};
+		
+		var idx = -1;
+		var getNextListing = function() {
+			idx = idx + 1;
+			if (idx < listings.length) {
+				return listings[idx];
+			};
+		};
+		
+		var clearListing = function(listing, i, listings) {
+			var api = jPw.apiet.makeEndFixedPriceItemRequest();
+			api.setItemID(listing.ebayItemId);
+			
+			var result = false;
+			api.callApiCallback( 
+				function(obj){
+					result = ebay.clearEbayItem( {internalId: listing.nsItemId, submit: true} );
+				}, 
+				function(obj){ 
+					xmlResp(obj); 
+				}
+			);		
+			return result;
+		};
+		
+		jPw.ProcessAllReSched(listings, clearListing, 100);
+		
+	};
+}( this.jPw.ebay = this.jPw.ebay || {}));

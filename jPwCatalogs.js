@@ -367,57 +367,85 @@
 	};
 	
 	jPw.itemUeAftCtlgs = function (type) {
-		if (type == 'edit' ) {
-			var oldCtlgs, newCtlgs, addedCtlgs, deletedCtlgs; 
-			
-			var oldRec = nlapiGetOldRecord();
-			if (!oldRec) { // there are reports that errs with null, try again, just in case it works 
-				oldRec = nlapiGetOldRecord();
-			};
-			if (oldRec) { 
-				oldCtlgs = oldRec.getFieldValues('custitem_item_prod_ctlg');
+		
+		var errObjResponse = function(errObj, msg) {
+			var type, details; 
+			if ( errObj instanceof nlobjError ) {
+				type = errObj.getCode();
+				details = errObj.getDetails();
 			} else {
-				nlapiLogExecution('ERROR', 'itemUeAftCtlgs Edit', 'nlapiGetOldRecord() returned null' );
-				return;
+				type = 'UNEXPECTED_ERROR';
+				details = errObj.toString();
 			};
-			
-			var newRec = nlapiGetNewRecord();
-			newCtlgs = newRec.getFieldValues('custitem_item_prod_ctlg');
-			
-			deletedCtlgs = jPw.missingFrom(oldCtlgs, newCtlgs);
-			addedCtlgs = jPw.missingFrom(newCtlgs, oldCtlgs);
-			
-			if (((addedCtlgs) && (addedCtlgs.length > 0)) || ((deletedCtlgs) && (deletedCtlgs.length > 0))) {
-				//var itmId = nlapiGetRecordId();
-				var ptrnId = newRec.getFieldValue('custitem_leather_pattern');
+			if (msg) {
+				details = msg +' '+ details;
+			}
+			nlapiLogExecution('ERROR', type, details );
+			//nlapiSendEmail(nlapiGetUser(), 'james.white@classicsofttrim.com', 'jPw.itemUeAftCtlgs ' +type, details);
+		};
+		
+		if ((type == 'edit' ) || (type == 'create')) {
+			var oldCtlgs, newCtlgs, addedCtlgs, deletedCtlgs; 
+			try {
+				if (type == 'edit' )  {
+					var oldRec = nlapiGetOldRecord();
+					if (!oldRec) { // there are reports that errs with null, try again, just in case it works 
+						oldRec = nlapiGetOldRecord();
+					};
+					if (oldRec) { 
+						oldCtlgs = oldRec.getFieldValues('custitem_item_prod_ctlg');
+					} else {
+						nlapiLogExecution('ERROR', 'itemUeAftCtlgs Edit', 'jPw.itemUeAftCtlgs edit nlapiGetOldRecord() returned null' );
+						return;
+					};
+				} else {
+					oldCtlgs = null;
+				};
+				
+				var newRec = nlapiGetNewRecord();
+				newCtlgs = newRec.getFieldValues('custitem_item_prod_ctlg');
+				
+				deletedCtlgs = jPw.missingFrom(oldCtlgs, newCtlgs);
+				addedCtlgs = jPw.missingFrom(newCtlgs, oldCtlgs);
+				
+				if (((addedCtlgs) && (addedCtlgs.length > 0)) || ((deletedCtlgs) && (deletedCtlgs.length > 0))) {
+					//var itmId = nlapiGetRecordId();
+					var ptrnId = newRec.getFieldValue('custitem_leather_pattern');
 
-				if ((addedCtlgs) && (addedCtlgs.length > 0)) {
-					nlapiLogExecution('DEBUG', 'itemUeAftCtlgs Edit', 'Add Ctlgs ptrnId '+ptrnId+' ctlgs '+addedCtlgs.join(',') );
-					jPw.addPtrnCarCtlgs(ptrnId, addedCtlgs);
+					if ((addedCtlgs) && (addedCtlgs.length > 0)) {
+						nlapiLogExecution('DEBUG', 'itemUeAftCtlgs Edit', 'Add Ctlgs ptrnId '+ptrnId+' ctlgs '+addedCtlgs.join(',') );
+						jPw.addPtrnCarCtlgs(ptrnId, addedCtlgs);
+					};
+					if ((deletedCtlgs) && (deletedCtlgs.length > 0)) {
+						nlapiLogExecution('DEBUG', 'itemUeAftCtlgs Edit', 'Del Ctlgs ptrnId '+ptrnId+' ctlgs '+deletedCtlgs.join(',') );
+						jPw.delPtrnCarCtlgs(ptrnId, deletedCtlgs);
+					};
 				};
-				if ((deletedCtlgs) && (deletedCtlgs.length > 0)) {
-					nlapiLogExecution('DEBUG', 'itemUeAftCtlgs Edit', 'Del Ctlgs ptrnId '+ptrnId+' ctlgs '+deletedCtlgs.join(',') );
-					jPw.delPtrnCarCtlgs(ptrnId, deletedCtlgs);
-				};
+			} catch (e) {
+				errObjResponse(e);
 			};
 		}
 	  
 		else if (type == 'delete' ) {
 			var ptrnId, oldCtlgs;
-			var oldRec = nlapiGetOldRecord();
-			if (!oldRec) { // there are reports that errs with null, try again, just in case it works 
-				oldRec = nlapiGetOldRecord();
-			};
-			if (oldRec) { 
-				ptrnId = oldRec.getFieldValue('custitem_leather_pattern');
-				oldCtlgs = oldRec.getFieldValues('custitem_item_prod_ctlg');
-			} else {
-				nlapiLogExecution('ERROR', 'itemUeAftCtlgs Delete', 'nlapiGetOldRecord() returned null' );
-				return;
-			};
+			try{
+				var oldRec = nlapiGetOldRecord();
+				if (!oldRec) { // there are reports that errs with null, try again, just in case it works 
+					oldRec = nlapiGetOldRecord();
+				};
+				if (oldRec) { 
+					ptrnId = oldRec.getFieldValue('custitem_leather_pattern');
+					oldCtlgs = oldRec.getFieldValues('custitem_item_prod_ctlg');
+				} else {
+					nlapiLogExecution('ERROR', 'itemUeAftCtlgs Delete', 'jPw.itemUeAftCtlgs delete nlapiGetOldRecord() returned null' );
+					return;
+				};
 
-			nlapiLogExecution('DEBUG', 'itemUeAftCtlgs Delete', 'oldCtlgs '+ (oldCtlgs ? oldCtlgs.join(',') : 'zilch') );
-			jPw.delPtrnCarCtlgs(ptrnId, oldCtlgs);
+				nlapiLogExecution('DEBUG', 'itemUeAftCtlgs Delete', 'oldCtlgs '+ (oldCtlgs ? oldCtlgs.join(',') : 'zilch') );
+				jPw.delPtrnCarCtlgs(ptrnId, oldCtlgs);
+			} catch (e) {
+				errObjResponse(e);
+			};
 		};
 		
 	};

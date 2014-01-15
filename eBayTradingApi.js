@@ -4,6 +4,8 @@
  * Version    Date            Author           Remarks
  * 1.00       28 Oct 2013     james.white
  *
+ * Requires:
+ * jPwJsUtils.js
  */
 
 this.jPw = this.jPw || {};
@@ -52,29 +54,10 @@ this.jPw = this.jPw || {};
 		return environment;
 	};
 	
-	/*
-	customrecord_ebay_config
-	
-	custrecord_ebay_cfg_dev_acct
-	custrecord_ebay_cfg_env
-	custrecord_ebay_cfg_keyset
-	custrecord_ebay_cfg_devid
-	custrecord_ebay_cfg_appid
-	custrecord_ebay_cfg_certid
-	custrecord_ebay_cfg_trd_api_uri
-	custrecord_ebay_cfg_trd_api_vers
-	custrecord_ebay_cfg_siteid
-	custrecord_ebay_cfg_userid
-	custrecord_ebay_cfg_pp_email
-	custrecord_ebay_cfg_auth_token
-	custrecord_ebay_cfg_expiry_dt
-	custrecord_ebay_cfg_lstng_file_id	
-*/	
-
 	apiet.getEbayCfg = function() {
-		var results = nlapiSearchRecord('customrecord_ebay_config', null, null, 
-			[ 
-			  new nlobjSearchColumn('custrecord_ebay_cfg_siteid'),
+		var results = nlapiSearchRecord('customrecord_ebay_config', null, 
+			[ new nlobjSearchFilter('isinactive', null, 'is', 'F')], 
+			[ new nlobjSearchColumn('custrecord_ebay_cfg_siteid'),
 			  new nlobjSearchColumn('custrecord_ebay_cfg_trd_api_vers'),
 			  new nlobjSearchColumn('custrecord_ebay_cfg_devid'),
 			  new nlobjSearchColumn('custrecord_ebay_cfg_appid'),
@@ -83,7 +66,6 @@ this.jPw = this.jPw || {};
 			  new nlobjSearchColumn('custrecord_ebay_cfg_auth_token'),
 			  new nlobjSearchColumn('custrecord_ebay_cfg_pp_email'),
 			]);
-		
 		
 		if ((!results) || (results.length < 1)) {
 			var msg = 'Thare are no eBay configuration records defined.';

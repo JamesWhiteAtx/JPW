@@ -4,131 +4,7 @@
  */
 
 var test = function (request, response) {
-	var logExecutionMsg = function(e, errorDetailMsg) {
-		var msg = new String();
-		msg += errorDetailMsg;
-		if(e.getCode != null) {
-			msg += " "+ e.getDetails();
-		} else {
-			msg += " "+ e.toString();
-		};
-		return msg;  
-	};
-
-	var addMsg = function(msg, logType) {
-		nlapiLogExecution(logType ||'DEBUG', msg);
-		//list = list + '\n' + msg;
-	};
-		
-	var reSched = function(cntx) {
-		var context = cntx ||nlapiGetContext();
-
-		var status = nlapiScheduleScript(context.getScriptId(), context.getDeploymentId());
-		 
-		if( status == 'QUEUED' ) { 
-			addMsg('Programatically Scheduled Script:'+context.getScriptId()+' Delpoyment:'+context.getDeploymentId(), 'AUDIT');
-			return true;
-		} else {
-			addMsg('Failed to Programatically Scheduled Script:'+context.getScriptId()+' Delpoyment:'+context.getDeploymentId(), 'ERROR');
-			return true;
-		};
-	};
-	
-	var checkReSched = function(idx, cntx) {
-		if (idx % 10 == 0) {
-			var context = cntx ||nlapiGetContext();
-			if ( context.getRemainingUsage() < 100) {
-				return reSched(cntx); 
-			} else {
-				return false;
-			};
-			
-		} else {
-			return false;
-		};
-	};
-	
-	var search = jPw.parts.LeaSrchObj( 
-			[ 
-			  ['isinactive', 'is', 'F'],
-			  'and',
-			  ['type', 'is', 'InvtPart'], 
-			  'and', 
-			  ['custitem_prod_cat', 'is', '9'], 
-			  'and', 
-			  ['custitem_parent_item', 'is', 'F'],
-			  'and', 
-			  ['custitem_ebay_candidate', 'is', 'T'],
-			  'and', 
-			  [
-			   ['custitem_ebay_listing_id', 'is', '@NONE@'],
-			   'or',
-			   ['custitem_ebay_listing_url', 'is', '@NONE@'],
-			   'or',
-			   ['not', ['custitem_item_prod_ctlg', 'anyof', jPw.ebay.ctlgId] ],
-			  ]
-			], 
-			[new nlobjSearchColumn('name'),
-			 new nlobjSearchColumn('custitem_leather_kit_type'),
-			 new nlobjSearchColumn('custitem_prod_cat'),
-			 new nlobjSearchColumn('custitem_ebay_candidate'),
-			 new nlobjSearchColumn('custitem_item_prod_ctlg'),
-			 new nlobjSearchColumn('custitem_ebay_listing_id'),
-			 new nlobjSearchColumn('custitem_ebay_listing_url'),		 
-			 new nlobjSearchColumn('storedisplayimage'),
-			 new nlobjSearchColumn('storedisplaythumbnail')
-			]);
-	
-	var resultSet = search.runSearch();
-	var max = 10;
-	var loopAdds = function (cntx) {
-		var results = resultSet.getResults(0, max+1);
-		if ((results) && (results.length > 0)) {
-			var count = Math.min(results.length, (max+1));
-			
-			var percent;
-			//context.setPercentComplete(0.00);   
-			//context.getPercentComplete();  // displays percentage complete
-			
-			for (var i = 0; i < count; i++) {
-				if (checkReSched(i, cntx)) {
-					return false;
-				};
-				
-				var part = jPw.parts.makeLeaPartObj( results[i] );
-				
-
-				xxx.img_id = part.getValue('storedisplayimage');
-				xxx.thumb_id = part.getValue('storedisplaythumbnail');
-				
-				xxx.ebay_img_url = jPw.ebay.addUpdEbayImage(xxx.img_id);
-				xxx.ebay_thumb_url = jPw.ebay.addUpdEbayImage(xxx.thumb_id);
-				
-				break;
-
-				//var partno = part.basePartNo;
-				//var internalid = part.getId(); 
-				//jPw.ebay.addUpdListing(partno, internalid);
-				
-				percent = Math.round( (100*(i+1)) / count );
-				//context.setPercentComplete( percent );     // calculate the results
-				//context.getPercentComplete();  // displays percentage complete  
-				addMsg('Percent: '+percent, 'DEBUG');
-			};
-			return (results.length > max);
-		} else {
-			return false;
-		};
-		
-	};
-	
-	var xxx = {};
-	var context = nlapiGetContext();
-	if (loopAdds(context)) {
-		reSched (context);
-	};
-	
-	jPw.jsonResponse( request, response, {xxx: xxx} );
+	jPw.jsonResponse( request, response, {count: jPw.getIsisImpCount()} );
 	
 };
 
@@ -860,10 +736,10 @@ function demoList(request, response)
      response.writePage( list );
 };
 
-
+// Add CST Bins for CST Locations
 var bins = function () {
 	var clscName = 'Classic Soft Trim';
-	var unavailLocName = 'Unavailable - CST';
+	var unavailLocName = '550 - Inventory Cleanup';  // 'Unavailable - CST';
 	var cleanupBranch = '550';
 	var unavailSufx = '-Unavailable';
 	var returnSufx = '-Returned';
@@ -979,8 +855,10 @@ var bins = function () {
 		recordMissingBin(loc.id, loc.branchNum);
 		
 		if (unavailLoc) {
-			recordMissingBin(unavailLoc.id, loc.branchNum + unavailSufx);
-			recordMissingBin(unavailLoc.id, loc.branchNum + returnSufx);
+			if (unavailLoc.id != loc.id) {
+				recordMissingBin(unavailLoc.id, loc.branchNum + unavailSufx);
+				recordMissingBin(unavailLoc.id, loc.branchNum + returnSufx);
+			};
 		};
 		
 	};
@@ -1000,7 +878,9 @@ var bins = function () {
 	var branchNum, invAvail, binNum, binId;
 	var locStr = "";
 	var binStr = "";
+	var unavailBinStr = "", unavailBinId;
 	var cleanupLocId, cleanupBinId;
+	var unavailLocId;
 	
 	for (var i = 0; i < cstLocs.length; i++) {
 		locid = cstLocs[i].getId();
@@ -1009,8 +889,25 @@ var bins = function () {
 		invAvail = (cstLocs[i].getValue('makeinventoryavailable') === 'T');
 
 		if (locname === unavailLocName) {
-			//unavailLocIdx = locList.length;
-		} else if ((branchNum) && invAvail) {
+			unavailLocId = locid;
+			
+			var binSearch = searchBins([unavailLocId]);
+			if (!!binSearch)  {
+				for (var ii = 0; ii < binSearch.length; ii++) {
+					binNum =  binSearch[ii].getValue('binnumber').toString();
+					binId = binSearch[ii].getId();
+					
+					var idx = binNum.indexOf(unavailSufx);
+					if (idx != -1) {
+						var branchId = binNum.substring(0,idx).trim();
+						unavailBinStr = unavailBinStr +  " WHEN '"+branchId+"' THEN " + binId;
+					};
+					
+				};
+			};
+			
+		};
+		if ((branchNum) && invAvail) {
 			locStr = locStr +  " WHEN '"+branchNum+"' THEN " + locid ;
 
 			if (branchNum == cleanupBranch) {
@@ -1043,11 +940,12 @@ var bins = function () {
 	};
 	if (cleanupBinId) {
 		binStr = binStr +  " ELSE " + cleanupBinId ;
+		unavailBinStr = unavailBinStr  +  " ELSE " + cleanupBinId ;
 	};
 
 	addBins.push({usage: nlapiGetContext().getRemainingUsage()});	
 	
-	return {addBins: addBins, locStr: locStr, binStr: binStr};
+	return {addBins: addBins, locStr: locStr, binStr: binStr, unavailLocId: unavailLocId, unavailBinStr: unavailBinStr};
 };
 
 var testList = function (maxItems) {

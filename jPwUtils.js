@@ -52,14 +52,15 @@
 		
 		var loopDelete = function(results) {
 			var total = results.length;
-			var doPerc = (total < 1000);
+			//var doPerc = (total < 1000);
 			var percent;
 			
-			if (doPerc) {
-				context.setPercentComplete(0.00);   
-				context.getPercentComplete();  // displays percentage complete
-			};
+			//if (doPerc) {
+			context.setPercentComplete(0.00);   
+			context.getPercentComplete();  // displays percentage complete
+			//};
 			
+			var deleted = 0;
 			for ( var i = 0; results != null && i < results.length;  i++ ) {
 				if ( checkReSched() ) {
 					return false;
@@ -67,22 +68,29 @@
 				var record = results[i];
 				try{
 					addMsg('Deleting Record:' + record.getRecordType() +' Internal ID:'+ record.getId() +'. ', 'DEBUG');
-					nlapiDeleteRecord(record.getRecordType(), record.getId());
 					
-					percent = (100*resCount) / total;
-					if (doPerc) {
-						context.setPercentComplete( percent );     // calculate the results
-						context.getPercentComplete();  // displays percentage complete  
-					};
+					nlapiDeleteRecord(record.getRecordType(), record.getId());
+					deleted = deleted + 1;
+					
+					percent = (100*i) / total;
+					//if (doPerc) {
+					context.setPercentComplete( percent );     // calculate the results
+					context.getPercentComplete();  // displays percentage complete  
+					//};
 					addMsg('Percent: '+percent, 'DEBUG');
 
 				}catch(err){
-					errorDetailMsg = 'Error deleting Record:' + record.getRecordType() +' Internal ID:'+ record.getId() +'. ';
+					var errorDetailMsg = 'Error deleting Record:' + record.getRecordType() +' Internal ID:'+ record.getId() +'. ';
 					addMsg(logExecutionMsg(err, errorDetailMsg), 'ERROR');
 					continue;
 				};
 			};
-			return true;
+			if (deleted == 0) {
+				addMsg('Exiting because 0 deleted of ' + total, 'ERROR');
+				return false;
+			} else {
+				return true;
+			}
 		};
 		
 		var SvdSrchResults = function(srchId, max) {
@@ -97,8 +105,9 @@
 			var count;
 			if ((srchResults) && (srchResults.length > 0)) {
 				count = srchResults.length;
-				addMsg('Deleting '+count+' records...', 'DEBUG'); 
-				if ( loopDelete(srchResults) ) {
+				addMsg('Deleting '+count+' records...', 'DEBUG');
+				var loopRes = loopDelete(srchResults);
+				if ( loopRes ) {
 					return (count == max);
 				} else {
 					return false;
