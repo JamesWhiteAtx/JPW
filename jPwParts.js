@@ -12,6 +12,54 @@
 
 (function(parts) {
 
+	parts.getPartSrchObj = function(filts, cols) {
+		var search = {srchObj: jPw.SrchObj('item', filts, cols)};
+		
+		search.addCol = function(col) {
+			search.srchObj.addCol(col);
+			return this;
+		};
+		search.addFilt = function(filt) {
+			search.srchObj.addFilt(filt);
+			return this;
+		};
+		
+		search.addCol(new nlobjSearchColumn('name'));
+		search.addCol(new nlobjSearchColumn('custitem_prod_cat'));
+
+		var partsList = [];
+		
+		search.results = function() {
+			partsList = [];
+			jPw.each(search.srchObj.results(), function() {
+				var part = jPw.srchResWrap(this);
+				partsList.push(part);
+			});
+			return partsList;
+		};
+
+		search.createSearch = function() {
+			return search.srchObj.createSearch();
+		};
+		
+		search.runSearch = function() {
+			return search.createSearch().runSearch();
+		};
+		
+		search.loopResSet = function(fcn, chunk, max) {
+			var passPartFcn = function(record) {
+				var part = jPw.srchResWrap(record);
+				fcn(part);
+			};
+
+			var resultSet = search.runSearch();
+			jPw.loopResSet(resultSet, passPartFcn, chunk, max);
+			return search;
+		};
+		
+		return search;
+	};
+
 	parts.getLeaPtrnSearch = function() {
 		var search = jPw.SrchObj('item', 
 			[new nlobjSearchFilter('isinactive', null, 'is', 'F'),			// this item is active

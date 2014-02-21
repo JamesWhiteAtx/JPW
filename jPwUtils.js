@@ -11,7 +11,7 @@
 	 * @param {String} type Context Types: scheduled, ondemand, userinterface, aborted, skipped
 	 * @returns {Void}
 	 */
-	jPw.schedDelSavedSrch = function(type) {
+	jPw.schedDelSavedSrch_old = function(type) {
 		//if ( type != 'scheduled' ) return; /* script should only execute during scheduled calls. */
 		var context = nlapiGetContext();
 		var srchId = context.getSetting('SCRIPT', 'custscript_del_srch_search');
@@ -135,4 +135,54 @@
 		//response.write(list);
 	};
 
+}( this.jPw = this.jPw || {}));
+
+(function(jPw, undefined) {
+
+	jPw.schedDelSavedSrch = function(type) {
+		var context = nlapiGetContext();
+		var qty = jPw.parmQtyExecute('custscript_del_srch_execute', 'custscript_del_srch_qty', context);
+		var srchId = context.getSetting('SCRIPT', 'custscript_del_srch_search');
+	
+		var svdSrch = nlapiLoadSearch(null, srchId);
+		
+		var lastId = 0;
+		var deleted = 0;
+		var errors = 0;
+		
+		var resultFcn = function(result, count) {
+			var id = result.getId();
+			 
+			if (id != lastId) {
+				lastId = id;
+				var type;
+				try{
+					type = result.getRecordType();
+					nlapiDeleteRecord(type, id);
+					deleted ++;
+					nlapiLogExecution('DEBUG', 'Deleted: ' + deleted, 'Deleted ' + type + ' id: ' + id + '. Number '+count);
+				} catch (e) {
+					nlapiLogExecution('DEBUG', 'Error, Not Deleted: ', 'Type ' + type + ' id: ' + id + '. Number '+count);
+					jPw.logErrObj(e, 'Error deleting from saved search, type: ' + type + ' id: ' + id + '.');
+					errors ++;
+				};
+
+			};
+		};
+		
+		var reSchedFcn = function(looped, results, max) {
+			if (deleted == 0) {
+				nlapiLogExecution('AUDIT', 'None Deleted', 'Abandoned Re Scheduled, deleted = ' + deleted);
+				return false;
+			} else {
+				return true;
+			};
+		};
+	
+		jPw.ProcessSearchReSched(svdSrch, resultFcn, qty, reSchedFcn);
+		
+		var finalMsg = 'Total Deleted: ' + deleted + '. Errors: ' + errors +'.';
+		nlapiLogExecution('AUDIT', finalMsg, finalMsg);
+	};
+	
 }( this.jPw = this.jPw || {}));

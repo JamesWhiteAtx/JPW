@@ -21,6 +21,7 @@
 		search
 			.addCol(new nlobjSearchColumn('salesdescription'))
 			.addCol(new nlobjSearchColumn('custitem_selector_descr'))
+			.addCol(new nlobjSearchColumn('storedescription'))
 			.addCol(new nlobjSearchColumn('custitem_prod_cat'))
 			.addCol(new nlobjSearchColumn('custitem_prod_sub_cat'))
 			.addCol(new nlobjSearchColumn('custitem_leather_pattern').setSort( false ))
@@ -85,7 +86,7 @@
 			item.price = jPw.parts.getLeaInstalledPrice(item.rows);
 		}
 
-		var assignStoreUrlId = function(item, partRecord) {
+		/*var assignStoreUrlId = function(item, partRecord) {
 			item.storeurl_id = partRecord.getId();
 			if (!partRecord.isBesSeller) {
 				var ptrnId = partRecord.getValue('custitem_leather_pattern');
@@ -98,7 +99,7 @@
 					item.storeurl_id = ptrns[0].getId();
 				}
 			}
-		};
+		};*/
 		
 		search.loopResSet(
 			function(part) {
@@ -110,6 +111,7 @@
 				    	pattern: part.getText('custitem_leather_pattern'),
 				    	descr: part.getValue('salesdescription'),
 				    	slctr_descr: part.getValue('custitem_selector_descr'),
+				    	store_descr: part.getValue('storedescription'),
 				    	category: part.getText('custitem_prod_cat'),
 				    	sub_category: part.getText('custitem_prod_sub_cat'),
 				    	color: part.getText('custitem_leather_color'),
@@ -131,7 +133,8 @@
 					   	insert_style: part.getText('custitem_insert_style'),
 					   	upccode: part.getValue('upccode'),
 					   	shippackage: part.getValue('shippackage'),
-					   	weight: part.getValue('weight')
+					   	weight: part.getValue('weight'),
+					   	prodCtgry: part.getValue('custitem_prod_cat')
 					};
 				
 				assignPrice(item);
@@ -140,41 +143,44 @@
 				assignColSwatch(part.getValue('custrecord_swatch', 'custitem_ins_color'), item, "insert1_hex", "insert1_url");
 				assignColSwatch(part.getValue('custrecord_swatch', 'custitem_3t_insert_clr2'), item, "insert2_hex", "insert2_url");
 
-				assignStoreUrlId(item, part);
-				
-				var carVals = part.getValue('custrecord_car_type', 'CUSTITEM_LEATHER_PATTERN');
-				var carIds = carVals.split(",");
-				
-				var carSrch = jPw.cars.getPtrnCarSearch()
-					.addFilt(new nlobjSearchFilter('internalid', null, 'anyOf', carIds))
-					.addCol(new nlobjSearchColumn('custrecord_make'))
-					.addCol(new nlobjSearchColumn('custrecord_year').setSort( true ))
-					.addCol(new nlobjSearchColumn('custrecord_model'))
-					.addCol(new nlobjSearchColumn('custrecord_body'))
-					.addCol(new nlobjSearchColumn('custrecord_tl'))				
-					;
-				var carsResSet = carSrch.runSearch();
-				
+				//assignStoreUrlId(item, part);
 				if (!excludeCars) {
-					var cars = [];
-					jPw.loopResSet(carsResSet,
-						function(car) {
-							var years = car.getText('custrecord_year').split(",");
-							jPw.each(years, function(idx, year) {
-								cars.push({
-									make: car.getText('custrecord_make'),
-									year: year,
-									model: car.getText('custrecord_model'),
-									body: car.getText('custrecord_body'),
-									trim: car.getText('custrecord_tl')
-								});
-							});
-						}
-					);
-					if (cars.length > 0) {
-						item.cars = cars;
+					var carVals = part.getValue('custrecord_car_type', 'CUSTITEM_LEATHER_PATTERN');
+					var carsResSet = null;
+					if (carVals) {
+						var carIds = carVals.split(",");
+						var carSrch = jPw.cars.getPtrnCarSearch()
+							.addFilt(new nlobjSearchFilter('internalid', null, 'anyOf', carIds))
+							.addCol(new nlobjSearchColumn('custrecord_make'))
+							.addCol(new nlobjSearchColumn('custrecord_year').setSort( true ))
+							.addCol(new nlobjSearchColumn('custrecord_model'))
+							.addCol(new nlobjSearchColumn('custrecord_body'))
+							.addCol(new nlobjSearchColumn('custrecord_tl'))				
+							;
+						carsResSet = carSrch.runSearch();
 					};
-				};
+					
+					if (carsResSet) {
+						var cars = [];
+						jPw.loopResSet(carsResSet,
+							function(car) {
+								var years = car.getText('custrecord_year').split(",");
+								jPw.each(years, function(idx, year) {
+									cars.push({
+										make: car.getText('custrecord_make'),
+										year: year,
+										model: car.getText('custrecord_model'),
+										body: car.getText('custrecord_body'),
+										trim: car.getText('custrecord_tl')
+									});
+								});
+							}
+						);
+						if (cars.length > 0) {
+							item.cars = cars;
+						};
+					};
+				};				
 				
 				list.push(item);
 			},
@@ -231,8 +237,8 @@
 				Product_Long_Description: part.color+' '+part.descr,
 				Mfr_UPC:  part.upccode,
 				Product_Picture_URL:  part.img_url,
-				Product_Literature_URL: '',
-				Product_Specific_Weblink: 'http://roadwire.com/s.nl?it=A&id='+ part.storeurl_id,	
+				//Product_Literature_URL: '',
+				//Product_Specific_Weblink: 'http://roadwire.com/s.nl?it=A&id='+ part.storeurl_id,	
 				MSRP: part.price,
 				MAP: part.price,
 				Speakers: '',

@@ -65,6 +65,16 @@ this.jPw = this.jPw || {};
 			  new nlobjSearchColumn('custrecord_ebay_cfg_trd_api_uri'),
 			  new nlobjSearchColumn('custrecord_ebay_cfg_auth_token'),
 			  new nlobjSearchColumn('custrecord_ebay_cfg_pp_email'),
+			  new nlobjSearchColumn('custrecord_ebay_cfg_lstng_file_id'),
+			  new nlobjSearchColumn('custrecord_ebay_cfg_lea_ctgry'),
+			  new nlobjSearchColumn('custrecord_ebay_cfg_htr_ctgry'),
+			  new nlobjSearchColumn('custrecord_ebay_cfg_1row_price'),
+			  new nlobjSearchColumn('custrecord_ebay_cfg_2row_price'),
+			  new nlobjSearchColumn('custrecord_ebay_cfg_3row_price'),
+			  new nlobjSearchColumn('custrecord_ebay_cfg_htr_price'),
+			  new nlobjSearchColumn('custrecord_ebay_cfg_lea_img1'),
+			  new nlobjSearchColumn('custrecord_ebay_cfg_title'),
+			  new nlobjSearchColumn('custrecord_ebay_cfg_descr'),
 			]);
 		
 		if ((!results) || (results.length < 1)) {
@@ -87,20 +97,39 @@ this.jPw = this.jPw || {};
 			trdUri: cfgRecord.getValue('custrecord_ebay_cfg_trd_api_uri'),
 			trdHeaders: trdHeaders,
 			authToken: cfgRecord.getValue('custrecord_ebay_cfg_auth_token'),
-			ppEmail: cfgRecord.getValue('custrecord_ebay_cfg_pp_email')
+			ppEmail: cfgRecord.getValue('custrecord_ebay_cfg_pp_email'),
+			lstngFileId: cfgRecord.getValue('custrecord_ebay_cfg_lstng_file_id'),
+			leaCtgry: cfgRecord.getValue('custrecord_ebay_cfg_lea_ctgry'),
+			htrCtgry: cfgRecord.getValue('custrecord_ebay_cfg_htr_ctgry'),
+			price1Row: cfgRecord.getValue('custrecord_ebay_cfg_1row_price'),
+			price2Row: cfgRecord.getValue('custrecord_ebay_cfg_2row_price'),
+			price3Row: cfgRecord.getValue('custrecord_ebay_cfg_3row_price'),
+			htrPrice: cfgRecord.getValue('custrecord_ebay_cfg_htr_price'),
+			leaImg1Id: cfgRecord.getValue('custrecord_ebay_cfg_lea_img1'),
+			ovrdTitle: cfgRecord.getValue('custrecord_ebay_cfg_title'),
+			ovrdDescr: cfgRecord.getValue('custrecord_ebay_cfg_descr'),
 		};
 	};
-	
 		
 	apiet.makeEnvConfig = function() {
 		var cfg = apiet.getEbayCfg();
 		var environment = {
-				uri: cfg.trdUri,
-				headers: cfg.trdHeaders,
-				authToken: cfg.authToken,
-				payPalEmail: cfg.ppEmail
-			};
-			return environment;
+			uri: cfg.trdUri,
+			headers: cfg.trdHeaders,
+			authToken: cfg.authToken,
+			payPalEmail: cfg.ppEmail,
+			lstngFileId: cfg.lstngFileId,
+			leaCtgry: cfg.leaCtgry,
+			htrCtgry: cfg.htrCtgry,
+			price1Row: cfg.price1Row,
+			price2Row: cfg.price2Row,
+			price3Row: cfg.price3Row,
+			htrPrice: cfg.htrPrice,
+			leaImg1Id: cfg.leaImg1Id,
+			ovrdTitle: cfg.ovrdTitle,
+			ovrdDescr: cfg.ovrdDescr,
+		};
+		return environment;
 	};
 	
 	apiet.makeApiRequest = function (callName, env) {
@@ -145,6 +174,39 @@ this.jPw = this.jPw || {};
 			return prop;
 		};
 		
+		obj.getObjProp = function(propObj, propName, propVal) {
+			var defaultVal = propVal;
+			if (jPw.isUndefinedOrNull(defaultVal)) {
+				defaultVal = {};
+			};
+
+			var prop = propObj[propName];
+			
+			if (jPw.isUndefinedOrNull(prop)) {
+				if (typeof defaultVal === 'function') {
+					propObj[propName] = defaultVal(obj);
+				} else {
+					propObj[propName] = defaultVal;
+				};
+				prop = propObj[propName];
+			};
+			return prop;
+		};
+		
+		obj.setPathProp = function(pathNames, propName, propVal) {
+			if (!Array.isArray(pathNames)) {
+				pathNames = [pathNames];
+			};
+			
+			var propObj = obj.request[requestProp];
+			jPw.each(pathNames, function() {
+				var propName = this;
+				propObj = obj.getObjProp(propObj, propName);
+			});
+			propObj[propName] = propVal;
+			return propObj[propName];
+		};
+		
 		obj.getEnvironment = function () {
 			return environment;
 		};
@@ -181,9 +243,25 @@ this.jPw = this.jPw || {};
 			var path = '//nlapi:'+name;
 			return nlapiSelectNodes(xmlObj, path);
 		};
+		obj.getSubNodes = function (xmlObj, name) {
+			var path = './/nlapi:'+name;
+			return nlapiSelectNodes(xmlObj, path);
+		};
+		obj.getFirstSubNode = function (xmlObj, name) {
+			var path = './/nlapi:'+name;
+			var nodes = nlapiSelectNodes(xmlObj, path);
+			if ((nodes) && (nodes.length > 0 )) {
+				return nodes[0];
+			};
+		};
 		
 		obj.getRespAnyNodes = function (name) {
 			return obj.getAnyNodes(obj.respXmlObj, name);
+		};
+
+		obj.getVal = function (xmlObj, name) {
+			var path = 'nlapi:'+name;
+			return nlapiSelectValue(xmlObj, path);
 		};
 
 		obj.getAnyVal = function (xmlObj, name) {
@@ -341,12 +419,40 @@ this.jPw = this.jPw || {};
 			};
 			return obj;
 		};
+
+		obj.setSubTitle = function(title) {
+			if (typeof title == 'string') {
+				obj.setItemProp('SubTitle', title.substring(0,55) );
+			};
+			return obj;
+		};
 		
 		obj.setStartPrice = function(price) {
 			obj.setItemProp('StartPrice', {"@currencyID": "USD", "#text": price} );
 			return obj;
 		};
 
+		obj.calcLeaStartPrice = function(rows, defaultPrice) {
+			var rowPrice;
+			var env = obj.getEnvironment();
+			if (rows == 1) 		{rowPrice = env.price1Row;}
+			else if (rows == 2) {rowPrice = env.price2Row;}
+			else if (rows == 3) {rowPrice = env.price3Row;}
+			else 				{rowPrice = env.price2Row;};
+			
+			var price = rowPrice || defaultPrice;
+			
+			obj.setStartPrice(price);
+			return obj;
+		};
+
+		obj.calcHeaterStartPrice = function(defaultPrice) {
+			var env = obj.getEnvironment();
+			var price = env.htrPrice || defaultPrice;
+			obj.setStartPrice(price);
+			return obj;
+		};
+		
 		obj.setStoreCategoryID = function(ctgy) {
 			obj.getItemProp('Storefront').StoreCategoryID = ctgy;
 			return obj;
@@ -412,6 +518,7 @@ this.jPw = this.jPw || {};
 	apiet.makeAddFixedPriceItemRequest = function (env) {
 		var itemJson = {
 	      "ApplicationData": '',
+	      "AutoPay": "true",
 	      "Country": "US",
 	      "Currency": "USD",
 	      "Description": '',
@@ -482,7 +589,6 @@ this.jPw = this.jPw || {};
 	        "RestockingFeeValueOption": "Percent_15"
 	      },
 	      "InventoryTrackingMethod": "SKU",
-	      "ConditionID": "1000",
 	      "ShippingPackageDetails": {
 	        "ShippingIrregular": "false",
 	        "ShippingPackage": "USPSLargePack",
@@ -503,11 +609,36 @@ this.jPw = this.jPw || {};
 	apiet.makeLeatherItemRequest = function (env) {
 		var obj = apiet.makeAddFixedPriceItemRequest(env);
 		
-		obj.setItemProp('PrimaryCategory', { "CategoryID": "33702" });
+		var seatCovCtgry = '33702'; // seat covers
+		var env = obj.getEnvironment();
+		var ctgry = env.leaCtgry || seatCovCtgry;           // = '30120' ; //'14112'; //Everything Else > Test Auctions > eBay Use Only
+		obj.setItemProp('PrimaryCategory', { 'CategoryID': ctgry });
+		
+		if (ctgry != '30120') {  					// this was just in here for eBay testing
+			obj.setItemProp('ConditionID', '1000'); // Condition does not work with  Everything Else > Test Auctions > eBay Use Only	
+		};
+
 		//obj.setItemProp('SecondaryCategory', { "CategoryID": "???" });
+		
 		obj.addItemSpecific("Warranty","Yes");
 		obj.addItemSpecific("Brand","Roadwire");
 
+		return obj;
+	};
+	
+	apiet.makeHeaterItemRequest = function (env) {
+		var obj = apiet.makeAddFixedPriceItemRequest(env);
+
+		var heatPartCtgry = '33548'; 	//Parts & Accessories > Car & Truck Parts > Air Conditioning & Heat > Heater Parts
+		var env = obj.getEnvironment();
+		var ctgry = env.htrCtgry || heatPartCtgry;
+
+		obj.setItemProp('PrimaryCategory', { 'CategoryID': ctgry });	
+		obj.setItemProp('ConditionID', '1000');
+		
+		obj.addItemSpecific("Warranty","Yes");
+		obj.addItemSpecific("Brand","Roadwire");
+		
 		return obj;
 	};
 	
@@ -576,7 +707,8 @@ this.jPw = this.jPw || {};
 			.addOutputSelector("ItemArray.Item.ItemID")
 			.addOutputSelector("ItemArray.Item.ListingDetails.ViewItemURL")
 			.addOutputSelector("ItemArray.Item.Quantity")
-			.addOutputSelector("ItemArray.Item.SellingStatus.CurrentPrice");		
+			.addOutputSelector("ItemArray.Item.SellingStatus.QuantitySold")
+			.addOutputSelector("ItemArray.Item.SellingStatus.CurrentPrice");
 		
 		obj.addSkuFilter = function(sku) {
 			obj.setRequestProp("SKUArray", {"SKU": sku});
@@ -628,3 +760,69 @@ this.jPw = this.jPw || {};
 	};
 	
 }( this.jPw.apiet = this.jPw.apiet || {}));
+
+(function(apiet) {
+	apiet.makeGetSellingManagerSoldListingsRequest = function (env) {
+		var obj = apiet.makeApiRequest('GetSellingManagerSoldListings', env); 
+	
+		obj.adSearchTypeVal = function(type, val) {
+			var prop = obj.getRequestProp("Search", []);
+			prop.push({SearchType: type, SearchValue: val});
+			return obj;
+		};
+		
+		return obj;
+	};
+	
+	apiet.makeGetOrdersRequest = function (env) {
+		var obj = apiet.makeApiRequest('GetOrders', env);
+
+		obj.addOrderId = function(orderId) {
+			var ordBase = obj.getRequestProp('OrderIDArray');
+
+			if (jPw.isUndefinedOrNull(ordBase.OrderID)) {
+				ordBase.OrderID = [];
+			};
+			ordBase.OrderID.push(orderId);
+
+			return obj;
+		};
+		
+		return obj;
+	};
+	
+	apiet.makeCompleteSaleRequest = function (env) {
+		var obj = apiet.makeApiRequest('CompleteSale', env);
+
+		obj.setRequestProp('Shipped', 'true');
+		obj.setRequestProp('Paid', 'true');
+
+		obj.setItemID = function(id) {
+		    return obj.setRequestProp('ItemID', id);
+		};
+		obj.setTransactionID = function(id) {
+		    return obj.setRequestProp('TransactionID', id);
+		};
+
+		obj.setTrackingDetailsProp = function(propName, propVal) {
+			return obj.setPathProp(['Shipment', 'ShipmentTrackingDetails'], propName, propVal);	
+		};
+		
+		obj.setShipmentTrackingNumber = function(number) {
+			return obj.setTrackingDetailsProp('ShipmentTrackingNumber', number);
+		};
+		
+		obj.setShippingCarrierUsed = function(carrier) {
+			return obj.setTrackingDetailsProp('ShippingCarrierUsed', carrier);
+		};
+		
+		obj.setShippedTime = function(date) {
+			return obj.setPathProp('Shipment', 'ShippedTime', date.toISOString());	
+		};
+		
+		return obj;
+	};
+	
+}( this.jPw.apiet = this.jPw.apiet || {}));
+
+

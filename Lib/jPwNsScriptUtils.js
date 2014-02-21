@@ -114,14 +114,35 @@
 			return search.createSearch().runSearch();
 		};
 		
+		search.loopResSet = function(fcn, chunk, max) {
+			var resultSet = search.runSearch();
+			jPw.loopResSet(resultSet, fcn, chunk, max);
+			return search;
+		};
+		
 		return search;
 	};
 
 	jPw.MakeSrchCache = function(recType, filts, cols) {
 		var srchObj = jPw.SrchObj(recType, filts, cols);
-		var results = srchObj.results();
+		var results = -1;
+		
+		var loadResults = function() {
+			if (results === -1) {
+				results = []; //srchObj.results();
+				srchObj.loopResSet(function(result) {
+					results.push(result);
+				});
+			};
+		};
+		
+		var getResults = function() {
+			loadResults();
+			return results;
+		};
 		
 		var findResult = function(fcn) {
+			loadResults();
 			var idx = jPw.indexOfEval(results, fcn);
 			if (idx > -1) {
 				return results[idx];
@@ -138,7 +159,7 @@
 		
 		return {
 			srchObj: srchObj,
-			results: results,
+			get results() {return getResults();},
 			findResult: findResult,
 			findResultById: findResultById
 		};
@@ -280,7 +301,7 @@
 	 */
 	jPw.ensureSubmitTypeResults = function(search) {
 		var type = search.getSearchType();
-		if (type == 'Item') {
+		if (type.toUpperCase() == 'item'.toUpperCase()) {
 			jPw.ensureSrchCol(search, 'type');
 			jPw.ensureSrchCol(search, 'isserialitem');
 			//ensureSrchCol(search, 'isLotItem'); // note enabled in Roadwire account
@@ -322,6 +343,29 @@
 		else if (type == 'Subtotal') {return 'subtotalitem';}
 		else {return type;}
 		;
+	};
+
+	/**
+	 * Function loadItemRecord
+	 * returns and item nlobjRecord for the provided internal id 
+	 * use this function if the item sub-type is not known at the time, this function will use a search to find the
+	 * result then determine the type id to load the record
+	 * @param {int} internalid
+	 * @param {Object} initializeValues
+	 * @returns  nlobjRecord, if record can be found
+	 */
+	jPw.loadItemRecord = function(internalid, initializeValues) {
+		var search = nlapiCreateSearch('item', [ new nlobjSearchFilter('internalid', null, 'is', internalid) ],	null);
+		jPw.ensureSubmitTypeResults(search);
+		
+		var resSet = search.runSearch();
+		var results = resSet.getResults(0, 1);
+		
+		if ((results) && (results.length > 0)) {
+			var typeId = jPw.getItemSubmitTypeId(results[0]);
+			var record = nlapiLoadRecord(typeId, internalid, initializeValues);
+			return record;
+		};
 	};
 	
 	jPw.sumbitMultiVals = function (vals, result, field, join) {
@@ -434,4 +478,21 @@
 		return cstSubsidiary;
 	};
 	
+}( this.jPw = this.jPw || {} ));
+
+(function(jPw, undefined) {
+	jPw.logErrObj = function(errObj, msg) {
+		var type, details; 
+		if ( errObj instanceof nlobjError ) {
+			type = errObj.getCode();
+			details = errObj.getDetails();
+		} else {
+			type = 'UNEXPECTED_ERROR';
+			details = errObj.toString();
+		};
+		if (msg) {
+			details = msg +' '+ details;
+		}
+		nlapiLogExecution('ERROR', type, details );
+	};
 }( this.jPw = this.jPw || {} ));

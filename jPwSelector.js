@@ -405,7 +405,8 @@
 			.addCol(new nlobjSearchColumn('custrecord_swatch', 'custitem_leather_color'))
 			.addCol(new nlobjSearchColumn('custitem_is_special_edition'))
 			.addCol(new nlobjSearchColumn('custitem_customizations'))
-			.addCol(new nlobjSearchColumn('custitem_decoration_summary'))			
+			.addCol(new nlobjSearchColumn('custitem_decoration_summary'))	
+			.addCol(new nlobjSearchColumn('custitem_ebay_listing_url'))
 		;
 		
 		if (extraCols) {
@@ -431,7 +432,8 @@
 		    	isspecial:('T' == this.getValue('custitem_is_special_edition')),
 		    	customizations:(this.getValue('custitem_customizations')|| '').split(','),
 		    	customizationnames:(this.getText('custitem_customizations')|| '').split(','),
-		    	decorations:this.getValue('custitem_decoration_summary')
+		    	decorations:this.getValue('custitem_decoration_summary'),
+		    	ebaylisturl:this.getValue('custitem_ebay_listing_url')
 		    };
 	    	jPw.setIdNm(this, 'custitem_leather_kit_type', item, 'kittype');	    	
 	

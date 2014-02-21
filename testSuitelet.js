@@ -4,9 +4,330 @@
  */
 
 var test = function (request, response) {
-	jPw.jsonResponse( request, response, {count: jPw.getIsisImpCount()} );
+
+	var ps = request.getAllParameters();
+	
+	var rtnParm = jPw.ebay.RtnParm(request);
+	/*rtnParm.rtnscpt = 'scipto';
+	rtnParm.rtndepl = 'delpo';
+	rtnParm.rtnparm = {val1: 1, val2:2};
+	rtnParm.rtnto = 'the page';*/
+
+	var s = rtnParm.parmStr();
+	jPw.jsonResponse( request, response, rtnParm.parmObj() );	
+	
+//	nlapiSetRedirectURL('SUITELET', 'customscript_ebay_maint_cfg','customdeploy_ebay_maint_cfg', null, rtnParm.parmObj());	
+	//var q=result;
+};	
+	
+var loadMultiEbayPages = function (request, response) {
+	var api = jPw.apiet.makeActiveListingsRequest();
+
+	api.addOutputSelector('PageNumber')
+		.addOutputSelector('PaginationResult.TotalNumberOfEntries')
+		.addOutputSelector('PaginationResult.TotalNumberOfPages')
+		.addOutputSelector('ReturnedItemCountActual');
+
+	var pageNumber = 1;
+	var entriesPerPage = 2;
+	var totalPages = 0;
+	var pagesLoaded = 0;
+	var resp = [];
+	
+	var loadListings = function() {
+		api.setRequestProp("Pagination", {"EntriesPerPage": entriesPerPage, "PageNumber": pageNumber});	
+		api.callApiCallback( 
+			function(obj){
+				//response.setContentType('XMLDOC');
+				//response.write( obj.respXmlStr );
+				resp.push({
+					entries: obj.getRespAnyVal('TotalNumberOfEntries'),
+					pages: obj.getRespAnyVal('TotalNumberOfPages'),
+					page: obj.getRespAnyVal('PageNumber'),
+					count: obj.getRespAnyVal('ReturnedItemCountActual')
+				});
+				if (totalPages === 0) {
+					totalPages = obj.getRespAnyVal('TotalNumberOfPages');
+				};
+				pagesLoaded ++;
+				pageNumber ++;
+			}, 
+			function(obj){ 
+			}
+		);
+	};
+
+	do {
+		loadListings();
+	} while (pagesLoaded < totalPages) ;
+
+
+	jPw.jsonResponse( request, response, {resp: resp} );
+
+};
+
+var getEbayOrders = function (request, response) {
+	var api = jPw.apiet.makeGetSellingManagerSoldListingsRequest();
+//	api.setRequestProp('Filter', 'PaidNotShipped');
+	api.adSearchTypeVal('SaleRecordID', '109');
+	api.setRequestProp('Sort', 'SaleDate');
+
+//response.setContentType('XMLDOC');
+//response.write( api.getXmlEncode() );
+//return;
+
+	api.callApiCallback( 
+		function(obj){
+//response.setContentType('XMLDOC');
+//response.write( obj.respXmlStr );
+//return;
+			var orders = [];
+			var saleNodes = obj.getRespAnyNodes('SaleRecord');// nlapiSelectNodes(xmlObj, '//nlapi:Item');
+			
+			jPw.each(saleNodes, function() {
+				var saleNode = this;
+				
+				var orderUrlBase = nlapiResolveURL('SUITELET', 'customscript_ebay_get_order','customdeploy_ebay_get_order', null);
+				var completeUrlBase = nlapiResolveURL('SUITELET', 'customscript_ebay_completesale','customdeploy_ebay_completesale', null);
+
+				var saleOrdId = obj.getVal(saleNode, 'SaleRecordID');
+				var buyer = obj.getSubVal(saleNode, 'BuyerEmail');
+				
+				var isoDt = obj.getSubVal(saleNode, 'CreationTime');
+				var d = new Date( Date.parse(isoDt) );
+				var creationTime = nlapiDateToString(d, 'datetime'); 
+					
+				var status = null;
+				var statusNode = obj.getFirstSubNode(saleNode, 'OrderStatus');
+				if (statusNode) {
+					status = obj.getSubVal(statusNode, 'PaidStatus')
+						+' '+ obj.getSubVal(statusNode, 'ShippedStatus')
+						+' '+ obj.getSubVal(statusNode, 'PaymentMethodUsed');
+				};
+
+				var total = obj.getSubVal(saleNode, 'TotalAmount');
+
+				var transOrdId;
+				var orderLineItemID;
+				var itemId;
+				var transId;
+				var partno;
+				var descr;
+				var qty;
+				var carrier;
+				var orderUrl;
+				var actionName;
+				var actionUrl;
+				
+				var pushOrder = function() {
+					orders.push({
+						saleordid: saleOrdId,
+						status: status,
+						buyer: buyer,
+						creationtime: creationTime,
+						total: total,
+
+						line: line,
+						transordid: transOrdId,
+						order_url: orderUrl,
+						partno: partno,
+						descr: descr,
+						ebayitemId: itemId,
+						transactionid: transId,
+						action: actionName,
+						action_url: actionUrl,
+						qty: qty,
+						orderlineid: orderLineItemID,
+						//orderlineidus: orderLineItemID.replace(/-/g, '_'),
+					});
+				};
+				
+				var line = 0;
+				var transNodes = obj.getSubNodes(saleNode, 'SellingManagerSoldTransaction');
+				if ((!transNodes) || (transNodes.length == 0) || (transNodes.length > 1)) {
+					pushOrder();
+					saleOrdId = null;
+					status = null;
+					buyer = null;
+					creationTime = null;
+					total = null;
+				}
+				jPw.each(transNodes, function() {
+					transNode = this;
+					
+					line ++ ;
+					transOrdId = obj.getSubVal(transNode, 'SaleRecordID');
+					orderLineItemID = obj.getSubVal(transNode, 'OrderLineItemID');
+					itemId = obj.getSubVal(transNode, 'ItemID');
+					transId = obj.getSubVal(transNode, 'TransactionID');
+					partno = obj.getSubVal(transNode, 'CustomLabel'),
+					descr = obj.getSubVal(transNode, 'ItemTitle'),
+					qty = obj.getSubVal(transNode, 'QuantitySold');
+					carrier = '';
+					orderUrl = orderUrlBase + '&orderid=' + orderLineItemID;
+					actionName = 'Complete';
+					actionUrl = completeUrlBase + '&ebayitemid=' + itemId + '&transactionid=' + transId + '&carrier=' + carrier;
+					
+					pushOrder();
+				});
+				
+			});
+
+			var list = nlapiCreateList('Roadwire eBay Orders');
+		    list.setStyle('grid');
+
+		    list.addColumn('saleordid', 'text', 'Sale ID');
+			list.addColumn('status', 'text', 'Status');
+			list.addColumn('buyer', 'text', 'Buyer');
+		    list.addColumn('creationtime', 'text', 'Created');
+		    list.addColumn('total', 'text', 'Total');
+
+		    list.addColumn('transordid', 'text', 'Trans ID').setURL('order_url', true);
+			//list.addColumn('line', 'text', 'Line#');
+		    list.addColumn('partno', 'text', 'Part No');
+		    list.addColumn('descr', 'text', 'Title');
+		    list.addColumn('qty', 'text', 'Qty');
+		    list.addColumn('action', 'text', 'Action').setURL('action_url', true);
+		    list.addColumn('orderlineid', 'text', 'Order Line Item ID');
+			
+			jPw.each(orders, function() {
+		   		var order = this;
+				list.addRow(order);
+			});
+		   	response.writePage( list );
+		}, 
+		function(obj){ 
+			var msg = obj.respXmlStr;
+			nlapiLogExecution('ERROR', msg);
+			throw nlapiCreateError('API_ERROR_RESPONSE', msg);
+		}
+	);		
+};
+
+var eBayCompleteSale = function (request, response) {
+	var api = jPw.apiet.makeCompleteSaleRequest();
+
+	api.setItemID('110136071289');
+	api.setTransactionID('27208450001');
+	api.setShipmentTrackingNumber('JPW-123456');
+	api.setShippingCarrierUsed('JPW Long Haulage');
+	api.setShippedTime(new Date());
+	
+	api.callApiCallback( 
+		function(obj){
+			response.setContentType('XMLDOC');
+		    response.write( obj.respXmlStr );
+		}, 
+		function(obj){ 
+			var x = '<fail>fail</fail>'+obj.respXmlStr;
+			response.setContentType('PLAINTEXT', 'error.txt', 'inline');
+			response.write( x );
+		}
+	);	
+};
+
+var eBayOrder = function (request, response) {
+
+	var api = jPw.apiet.makeGetOrdersRequest();
+	api.setRequestProp('DetailLevel', 'ReturnAll');
+	api.addOrderId('110136071289-27208450001');
+
+	//var xmlStr = api.getXmlEncode();
+	//response.setContentType('XMLDOC');
+	//response.write( xmlStr );
+	
+	api.callApiCallback( 
+		function(obj){
+			response.setContentType('XMLDOC');
+		    response.write( obj.respXmlStr );
+		}, 
+		function(obj){ 
+			var x = '<fail>fail</fail>'+obj.respXmlStr;
+			response.setContentType('PLAINTEXT', 'error.txt', 'inline');
+			response.write( x );
+		}
+	);	
 	
 };
+
+var eBayUnshippedOrders = function (request, response) {
+	
+	var api = jPw.apiet.makeGetSellingManagerSoldListingsRequest();
+	api.setRequestProp('Filter', 'PaidNotShipped');
+
+	api.callApiCallback( 
+		function(obj){
+			var orders = [];
+			var orderNodes = obj.getRespAnyNodes('SaleRecord');// nlapiSelectNodes(xmlObj, '//nlapi:Item');
+			
+			jPw.each(orderNodes, function() {
+				var orderNode = this;
+				
+				var orderId = obj.getSubVal(orderNode, 'SaleRecordID');
+				var buyer = obj.getSubVal(orderNode, 'BuyerEmail');
+				
+				var isoDt = obj.getSubVal(orderNode, 'CreationTime');
+				var d = new Date( Date.parse(isoDt) );
+				var creationTime = nlapiDateToString(d, 'datetime'); 
+					
+				var total = obj.getSubVal(orderNode, 'TotalAmount');
+				var line = 0;
+				
+				var transNodes = obj.getSubNodes(orderNode, 'SellingManagerSoldTransaction');
+				jPw.each(transNodes, function() {
+					line ++ ;
+					transNode = this;
+					
+					var orderLineItemID = obj.getSubVal(transNode, 'OrderLineItemID');
+					var qty = obj.getSubVal(transNode, 'QuantitySold');
+					orders.push({
+						orderid: orderId,
+						buyer: buyer,
+						creationtime: creationTime,
+						line: line,
+						ebayitemId: obj.getSubVal(transNode, 'ItemID'),
+						transactionid: obj.getSubVal(transNode, 'TransactionID'),
+						partno: obj.getSubVal(transNode, 'CustomLabel'),
+						qty: qty,
+						orderlineid: orderLineItemID,
+						orderlineidus: orderLineItemID.replace(/-/g, '_'),
+						total: total
+					});
+				});
+				
+			});
+
+			var list = nlapiCreateList('Roadwire eBay Orders (Paid Not Shipped)');
+		    list.setStyle('grid');
+		   	
+		    list.addColumn('orderid', 'text', 'Order#');
+			list.addColumn('buyer', 'text', 'Buyer');
+		    list.addColumn('creationtime', 'text', 'Created');
+			list.addColumn('line', 'text', 'Line#');
+		    list.addColumn('partno', 'text', 'Part No');
+		    list.addColumn('qty', 'text', 'Qty');
+		    list.addColumn('orderlineid', 'text', 'ID');
+		    list.addColumn('total', 'text', 'Total');
+			
+			jPw.each(orders, function() {
+		   		var order = this;
+				list.addRow(order);
+			});
+		   	response.writePage( list );
+		}, 
+		function(obj){ 
+			response.setContentType('XMLDOC');
+			response.write( obj.respXmlStr );
+		}
+	);	
+	
+};
+
+//var xmlStr = api.getXmlEncode();
+//response.setContentType('XMLDOC');
+//response.write( xmlStr );
+
+//jPw.jsonResponse( request, response, {count: jPw.getIsisImpCount()} );
 
 var clearEbayCatalog = function () {
 	var results = nlapiSearchRecord('item', null, 
@@ -725,7 +1046,8 @@ function demoList(request, response)
      returncols[3] = new nlobjSearchColumn('salesrep');
      returncols[4] = new nlobjSearchColumn('amount');
  
-     var results = nlapiSearchRecord('estimate', null, new nlobjSearchFilter('mainline',null,'is','T'), returncols);
+     //var results = nlapiSearchRecord('estimate', null, new nlobjSearchFilter('mainline',null,'is','T'), returncols);
+     
      list.addRows( results );
  
      list.addPageLink('crosslink', 'Create Phone Call', nlapiResolveURL('TASKLINK','EDIT_CALL'));
