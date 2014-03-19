@@ -4,22 +4,65 @@
  */
 
 var test = function (request, response) {
-
-	var ps = request.getAllParameters();
+	var ctgryId = request.getParameter('ctgryid');
+	var subId = request.getParameter('subid');
+	var ctlgId = request.getParameter('ctlgid');
+	var itemId = request.getParameter('itemid');
 	
-	var rtnParm = jPw.ebay.RtnParm(request);
-	/*rtnParm.rtnscpt = 'scipto';
-	rtnParm.rtndepl = 'delpo';
-	rtnParm.rtnparm = {val1: 1, val2:2};
-	rtnParm.rtnto = 'the page';*/
-
-	var s = rtnParm.parmStr();
-	jPw.jsonResponse( request, response, rtnParm.parmObj() );	
+	var lstgCfgs = jPw.ebay.makeLstgCfgs();
 	
-//	nlapiSetRedirectURL('SUITELET', 'customscript_ebay_maint_cfg','customdeploy_ebay_maint_cfg', null, rtnParm.parmObj());	
-	//var q=result;
+	var cfg = lstgCfgs.calcCfg(ctgryId, subId, ctlgId, itemId);
+	
+	jPw.jsonResponse( request, response, {cfg: cfg} );	
 };	
+
+var setIsisCtgryPrices = function() {
+	var getMap = function() {
+		var map = {};
+
+		var ss = nlapiLoadSearch(null, 'customsearch_isis_ctgry_price');
+		var rs = ss.runSearch();
+		var results = rs.getResults(0, 1000);
+		var result;
+		for (var i = 0, len = results.length; i < len; i++) {
+			result = results[i];
+			var ctgry = result.getValue('custrecord_isis_price_ctgry_ctgry').toString();
+			var sub = result.getValue('custrecord_isis_price_ctgry_sub').toString();
+			var price = result.getValue('custrecord_isis_price_ctgry_price');
+			
+			if (!map[ctgry]) {
+				map[ctgry] = {};
+			};
+			map[ctgry][sub] = price;
+		};
+		
+		return map;
+	};
 	
+	var map = getMap();
+
+	var ss = nlapiLoadSearch(null, 'customsearch_isis_non_lea_ctgry_no_price');
+	var rs = ss.runSearch();
+	var results = rs.getResults(0, 1000);
+	var result, ctgry, sub, price, record, co;
+	for (var i = 0, len = results.length; i < len; i++) {
+		result = results[i];
+		ctgry = result.getValue('custrecord_isis_part_conv_prod_ctgry').toString();
+		sub = result.getValue('custrecord_isis_part_conv_prod_sub_ctgry').toString();
+		co = map[ctgry];
+		if (co) {
+			price = co[sub];
+			if (price) {
+				record = nlapiLoadRecord(results[i].getRecordType(), results[i].getId());
+				record.setFieldValue('custrecord_isis_part_conv_price', price);
+				nlapiSubmitRecord(record);
+			};
+		};
+	};	
+	
+
+};
+
 var loadMultiEbayPages = function (request, response) {
 	var api = jPw.apiet.makeActiveListingsRequest();
 

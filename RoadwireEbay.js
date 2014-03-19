@@ -89,12 +89,271 @@ function suitelet(request, response){
 };
 
 /*
+ * jPw.ebay.
+ * eBay API call to retrieve array of active listings 
+ */
+
+ (function(ebay) {
+	var none = '@NONE@';
+	var cfgHash = {
+			ctgry: {},
+			ctlg: {},
+			item: {}
+		};
+
+	ebay.makeLstgCfgs = function() {
+		var lstgCfgs = {};
+		
+		var lookupCfg = function(filters) {
+			var cfg = {};
+			
+			var columns = [
+							//new nlobjSearchColumn('custrecord_ebay_lstg_cfg_ctgry'),
+							//new nlobjSearchColumn('custrecord_ebay_lstg_cfg_sub'),
+							//new nlobjSearchColumn('custrecord_ebay_lstg_cfg_ctlg'),
+							//new nlobjSearchColumn('custrecord_ebay_lstg_cfg_item'),
+							new nlobjSearchColumn('custrecord_ebay_lstg_cfg_eby_ctgry1'),
+							new nlobjSearchColumn('custrecord_ebay_lstg_cfg_eby_ctgry2'),
+							new nlobjSearchColumn('custrecord_ebay_lstg_cfg_subtitle'),
+							new nlobjSearchColumn('custrecord_ebay_lstg_cfg_price'),
+							new nlobjSearchColumn('custrecord_ebay_lstg_cfg_retail'),
+							new nlobjSearchColumn('custrecord_ebay_lstg_cfg_html'),
+							new nlobjSearchColumn('custrecord_ebay_lstg_cfg_storeimg'),
+							new nlobjSearchColumn('custrecord_ebay_lstg_cfg_thumb'),
+						]; 
+			
+			var results = nlapiCreateSearch('customrecord_ebay_lstg_cfg', filters, columns).runSearch().getResults(0,1);
+			
+			if ((results) && (results.length > 0)) {
+				
+	    		var propIfVal = function(prop, fld) {
+	    			var val = result.getValue(fld);
+    				if (typeof val == 'string' || val instanceof String) {
+    					val = val.trim() || null;
+    				};
+
+    				if (!jPw.isUndefinedOrNull(val)) {
+	    				cfg[prop] = val;
+	    			};
+	    		};
+
+				var result = results[0];
+				cfg.id = result.getId();
+				propIfVal('ctgry1', 'custrecord_ebay_lstg_cfg_eby_ctgry1');
+				propIfVal('ctgry2', 'custrecord_ebay_lstg_cfg_eby_ctgry2');
+				propIfVal('subtitle', 'custrecord_ebay_lstg_cfg_subtitle'),
+				propIfVal('price', 'custrecord_ebay_lstg_cfg_price'),
+				propIfVal('retail', 'custrecord_ebay_lstg_cfg_retail'),
+				propIfVal('htmlId', 'custrecord_ebay_lstg_cfg_html');
+				propIfVal('storeImg', 'custrecord_ebay_lstg_cfg_storeimg');
+				propIfVal('thumbImg', 'custrecord_ebay_lstg_cfg_thumb');
+				
+				loadCfgImgs(cfg);
+			};
+
+			return cfg;
+		};
+		
+		var loadCfgImgs = function(cfg) {
+			cfg.images = [];
+			if (!cfg.id) {
+				return;
+			};
+			
+			var results = nlapiSearchRecord('customrecord_ebay_lstg_img', null, 
+					['custrecord_ebay_lstg_img_cfg', 'is', cfg.id], 
+					[new nlobjSearchColumn('custrecord_ebay_lstg_img_order').setSort(),
+					new nlobjSearchColumn('custrecord_ebay_lstg_img_file'),
+					new nlobjSearchColumn('custrecord_ebay_lstg_img_url')]);
+			
+			if ((results) && (results.length > 0)) {
+				var addImg = function(order, id, url) {
+					if (id) {
+						cfg.images.push({order: order, id: id});
+					} else if (url) {
+						cfg.images.push({order: order, url: url});
+					};
+				};
+				var result = results[0];
+				addImg(result.getValue('custrecord_ebay_lstg_img_order'),
+						result.getValue('custrecord_ebay_lstg_img_file'),
+						result.getValue('custrecord_ebay_lstg_img_url'));
+			};
+		};
+		
+		var getBaseCfg = function() {
+			if (!cfgHash[none]) {
+				cfgHash[none] = lookupCfg(
+						[
+							['custrecord_ebay_lstg_cfg_ctgry', 'is', '@NONE@'],
+							'and',
+							['custrecord_ebay_lstg_cfg_sub', 'is', '@NONE@'],
+							'and',
+							['custrecord_ebay_lstg_cfg_ctlg', 'is', '@NONE@'],
+							'and',
+							['custrecord_ebay_lstg_cfg_item', 'is', '@NONE@']
+						]);
+			};
+			return cfgHash[none];
+		};
+		
+		var getSubCfg = function(ctgryId, subId) {
+			var ctgryIdStr = ctgryId.toString();  
+			var subIdStr = subId.toString();
+			
+			if (!cfgHash.ctgry[ctgryIdStr]) {
+				cfgHash.ctgry[ctgryIdStr] = {};
+			};
+			if (!cfgHash.ctgry[ctgryIdStr][subIdStr]) {
+				cfgHash.ctgry[ctgryIdStr][subIdStr] = lookupCfg(
+						[
+				          	['custrecord_ebay_lstg_cfg_ctgry', 'is', ctgryId],
+				        	'and',
+				        	['custrecord_ebay_lstg_cfg_sub', 'is', subId]
+				        ]);
+			}
+			
+			return cfgHash.ctgry[ctgryIdStr][subIdStr];
+		};
+		var getCtgryCfg = function(ctgryId) {
+			return getSubCfg(ctgryId, none);
+		};
+		var getCtlgCfg = function(ctlgId) {
+			var ctlgIdStr = ctlgId.toString();
+			if (!cfgHash.ctlg[ctlgIdStr]) {
+				cfgHash.ctlg[ctlgIdStr] = lookupCfg(['custrecord_ebay_lstg_cfg_ctlg', 'is', ctlgId]);
+			};
+			return cfgHash.ctlg[ctlgIdStr];			
+		};
+		var getItemCfg = function(itemId) {
+			var itemIdStr = itemId.toString();
+			if (!cfgHash.item[itemIdStr]) {
+				cfgHash.item[itemIdStr] = lookupCfg(['custrecord_ebay_lstg_cfg_item', 'is', itemId]);
+			};
+			return cfgHash.item[itemIdStr];			
+		};
+		
+		lstgCfgs.calcCfg = function(ctgryId, subId, ctlgId, itemId) {
+			var cfg;
+			
+			var copyIfVal = function(trg, src, prop) {
+    			var val = src[prop];
+    			
+    			if (!jPw.isUndefinedOrNull(val)) {
+    				trg[prop] = val;
+    			};
+    		};
+
+			var mergeCfg = function(newCfg) {
+				if ((newCfg) && (!jPw.objEmpty(newCfg))) {
+
+					copyIfVal(cfg, newCfg, 'id');
+					copyIfVal(cfg, newCfg, 'ctgry1');
+					copyIfVal(cfg, newCfg, 'ctgry2');
+					copyIfVal(cfg, newCfg, 'htmlId');
+					copyIfVal(cfg, newCfg, 'subtitle');
+					copyIfVal(cfg, newCfg, 'price');
+					copyIfVal(cfg, newCfg, 'retail');
+					//copyIfVal(cfg, newCfg, 'storeImg');
+					//copyIfVal(cfg, newCfg, 'thumbImg');
+
+					var mergeImg = function(newImg) {
+						var compProp;
+						
+						if (newImg.id) {
+							compProp = 'id';
+						} else if (newImg.url) {
+							compProp = 'url';
+						} else if (newImg.store) {
+							compProp = 'store';
+						} else if (newImg.thumb) {
+							compProp = 'thumb';
+						} else {
+							return;
+						};
+
+						var matchImg = jPw.findElemEval(cfg.images, function(arrImg) {
+							return (arrImg[compProp] == newImg[compProp]);
+						});
+						
+						if (matchImg) {
+							matchImg.order = newImg.order;
+						} else {
+							cfg.images.push(newImg);
+						};
+						
+					};
+					
+					if ((newCfg.storeImg) || (newCfg.storeImg == 0)) {
+						mergeImg({order: newCfg.storeImg, store: 1});
+					};
+					if ((newCfg.thumbImg) || (newCfg.thumbImg == 0)) {
+						mergeImg({order: newCfg.thumbImg, thumb: 1});
+					};					
+					
+					jPw.each(newCfg.images, function() {
+						mergeImg(this);
+					});
+
+				};
+			};
+			
+    		cfg = getBaseCfg();
+
+    		if (ctgryId) {
+				mergeCfg(getCtgryCfg(ctgryId));
+				if (subId) {
+					mergeCfg(getSubCfg(ctgryId, subId));
+				};
+			};
+			
+			if (ctlgId) {
+				mergeCfg(getCtlgCfg(ctlgId));
+			};
+			
+			if (itemId) {
+				mergeCfg(getItemCfg(itemId));
+			};
+			
+			if (cfg.images.length > 0) {
+				cfg.images.sort(function(a,b){
+					return a.order > b.order;
+				});
+			} else {
+				delete cfg.images;
+			};
+			
+			return cfg;
+		};		
+			
+		return lstgCfgs;
+	};
+	
+	ebay._lstgCfgs = null;
+	
+	ebay.lstgCfgs = function() {
+		if (!ebay._lstgCfgs) {
+			ebay._lstgCfgs = ebay.makeLstgCfgs(); 
+		};
+		return ebay._lstgCfgs;
+	};
+	
+	
+}( this.jPw.ebay = this.jPw.ebay || {}));
+ 
+
+/*
  * jPw.ebay.getActiveListingArr
  * eBay API call to retrieve array of active listings 
  */
 (function(ebay) {
 
-	ebay.getActiveListingArr = function(skuArr, setupFcn, itemFcn){
+	ebay.getActiveListingArr = function(parm) {
+		//parm.skuArr, parm.setupFcn, parm.itemFcn, parm.qty, parm.page 
+		if (!parm) {
+			parm = {};
+		};
+		parm.totalQty = null;
 		
 		var api = jPw.apiet.makeActiveListingsRequest();
 		api.addOutputSelector('PageNumber')
@@ -102,17 +361,17 @@ function suitelet(request, response){
 			.addOutputSelector('PaginationResult.TotalNumberOfPages')
 			.addOutputSelector('ReturnedItemCountActual');
 
-		if ((skuArr) && (skuArr.length > 0)) {
-			api.addSkuFilter(skuArr);
+		if ((parm.skuArr) && (parm.skuArr.length > 0)) {
+			api.addSkuFilter(parm.skuArr);
 		};
 		
-		if (setupFcn) {
-			setupFcn(api);
+		if (parm.setupFcn) {
+			parm.setupFcn(api);
 		};
 		
-		var pageNumber = 1;
-		var entriesPerPage = 2;
-		var totalPages = 0;
+		var pageNumber = parm.page || 1;
+		var entriesPerPage = parm.qty || 200;
+		var totalPages = parm.page ? 1 : 0;
 		var pagesLoaded = 0;
 		var listingArr = [];
 		
@@ -141,8 +400,8 @@ function suitelet(request, response){
 							avail: (parseInt(qty) || 0) - (parseInt(sold) || 0)
 						};
 						
-						if (itemFcn) {
-							itemFcn(listing, node, obj);
+						if (parm.itemFcn) {
+							parm.itemFcn(listing, node, obj);
 						};
 						
 						listingArr.push(listing);
@@ -150,6 +409,10 @@ function suitelet(request, response){
 					if (totalPages === 0) {
 						totalPages = obj.getRespAnyVal('TotalNumberOfPages');
 					};
+					
+					parm.totalQty = obj.getRespAnyVal('TotalNumberOfEntries');
+					parm.page = obj.getRespAnyVal('PageNumber')
+					
 					pagesLoaded ++;
 					pageNumber ++;
 				}, 
@@ -172,12 +435,11 @@ function suitelet(request, response){
  */
 (function(ebay) {
 	ebay.activeListings = function(request, response){
-		
-		var listings = jPw.ebay.getActiveListingArr(null,
-				function(api) {
+		var listings = jPw.ebay.getActiveListingArr({
+				setupFcn: function(api) {
 					api.addOutputSelector('ItemArray.Item.PictureDetails.PictureURL')
 				},
-				function(listing, itemNode, obj) {
+				itemFcn: function(listing, itemNode, obj) {
 					listing.pictureUrls = [];
 					
 					var pictUrls = obj.getSubVals(itemNode, 'PictureURL');
@@ -188,7 +450,7 @@ function suitelet(request, response){
 					});
 					
 				}
-		);		
+		});		
 		
 		var list = nlapiCreateList('Active eBay Listings');
 	    list.setStyle('grid');
@@ -450,7 +712,10 @@ function suitelet(request, response){
 	ebay.removeListing = function(request, response){
 		var form;
 		if ( request.getMethod() == 'GET' ) {
-			var maintParm = jPw.ebay.MaintParm(request);
+			
+			var maintParm = jPw.ebay.getMaintRtnParm(); // jPw.ebay.MaintParm(request);
+			maintParm.loadMaintFromReq(request);
+			
 			var partno = request.getParameter('partno');
 			var ebayitemid = request.getParameter('ebayitemid');
 			
@@ -474,7 +739,9 @@ function suitelet(request, response){
 	        
 	        response.writePage( form );
 		} else if ( request.getMethod() == 'POST' ) {
-			var maintParm = jPw.ebay.MaintParm(request);
+			var maintParm = jPw.ebay.getMaintRtnParm(); // jPw.ebay.MaintParm(request);
+			maintParm.loadMaintFromReq(request);
+
 			//var partno = request.getParameter('partno');
 			var ebayitemid = request.getParameter('ebayitemid');
 
@@ -559,7 +826,8 @@ function suitelet(request, response){
 	ebay.listingQuantity = function(request, response){
 		var form;
 		if ( request.getMethod() == 'GET' ) {
-			var maintParm = jPw.ebay.MaintParm(request);
+			var maintParm = jPw.ebay.getMaintRtnParm(); // jPw.ebay.MaintParm(request);
+			maintParm.loadMaintFromReq(request);
 			
 			var partno = request.getParameter('partno');
 			var itemid = request.getParameter('itemid');
@@ -608,8 +876,8 @@ function suitelet(request, response){
 	        
 	        response.writePage( form );
 		} else if ( request.getMethod() == 'POST' ) {
-			
-			var maintParm = jPw.ebay.MaintParm(request);
+			var maintParm = jPw.ebay.getMaintRtnParm(); // jPw.ebay.MaintParm(request);
+			maintParm.loadMaintFromReq(request);
 			
 			var partno = request.getParameter('partno');
 			//var itemid = request.getParameter('itemid');
@@ -651,6 +919,11 @@ function suitelet(request, response){
 			api.setQuantity(avail);
 			api.setStartPrice(price);
 
+			//JPW
+			//response.setContentType('XMLDOC');
+			//response.write( api.getXmlEncode() );
+			//return;
+			
 			var qtyUpdated = function (request, response, obj, respEbayItemId, respSku) {
 				var apiGet = jPw.apiet.makeGetItemRequest();
 				apiGet.setRequestProp("ItemID", respEbayItemId);
@@ -704,7 +977,7 @@ function suitelet(request, response){
 (function(ebay) {
 	
 	ebay.maintLstMap = {
-		bestOrEB:	{
+		candOrEB:	{
 			text: 'Either eBay Candidate or eBay Catalog',
 			filter: [ ['custitem_ebay_candidate', 'is', 'T'],
 			        'or',
@@ -714,17 +987,17 @@ function suitelet(request, response){
 			text: 'Only eBay Catalog',
 			filter: ['custitem_item_prod_ctlg', 'anyof', jPw.ebay.ctlgId] 
 		},
-		onlyBest:   {
+		onlyCand:   {
 			text: 'Only eBay Candidate',
 			filter: ['custitem_ebay_candidate', 'is', 'T']  
 		},
-		bestNotEB: 	{
+		candNotEB: 	{
 			text: 'eBay Candidates but NOT eBay Catalog',
 			filter: [ ['custitem_ebay_candidate', 'is', 'T'],
 			        'and',
 			        ['not', ['custitem_item_prod_ctlg', 'anyof', jPw.ebay.ctlgId] ] ]  
 		},
-		eBNotBest:	{
+		eBNotCand:	{
 			text: 'eBay Catalog but NOT eBay Candidates',
 			filter: [ ['custitem_item_prod_ctlg', 'anyof', jPw.ebay.ctlgId],
 			        'and',
@@ -735,129 +1008,222 @@ function suitelet(request, response){
 			filter: [] 
 		}
 	};
-	
-	var fltn = function(ob) {
-		var toReturn = {};
+
+	ebay.getMaintRtnParm = function() {
+		var rtnParm = ebay.getRtnParm();
 		
-		for (var i in ob) {
-			if (!ob.hasOwnProperty(i)) continue;
+		rtnParm.loadInGet = function(request) {
+			rtnParm.nsitems = request.getParameter('nsitems');
+			rtnParm.eblstngs = request.getParameter('eblstngs');
+			rtnParm.imgid = request.getParameter('imgid');
+			rtnParm.pageno = request.getParameter('pageno') || 1;
+			rtnParm.itemstr = request.getParameter('itemstr');
+		};
+		
+		rtnParm.loadInPost = function(request) {
+			var parm = {nsitems: request.getParameter('nsitems'),
+					pageno: request.getParameter('pageno') || 1,
+					eblstngs: request.getParameter('eblstngs'),
+					imgid: request.getParameter('imgid')};
 			
-			if ((typeof ob[i]) == 'object') {
-				var flatObject = fltn (ob[i]);
-				for (var x in flatObject) {
-					if (!flatObject.hasOwnProperty(x)) continue;
-					
-					toReturn[x] = flatObject[x];
-				}
-			} else {
-				toReturn[i] = ob[i];
-			}
-		}
-		return toReturn;
-	};
-	
-	var srlz = function(obj) {
-		var str = '';
-		var nxtStr = '';
-		for (var key in obj) {
-			var isObj = (obj[key] instanceof Object);
-			if (isObj) {
-				nxtStr = srlz(obj[key]);
-			} else {
-				nxtStr = key + '=' + obj[key];
-			};
-			if (nxtStr) {
-				if (str != '') {
-					str += '&';
-				};
-				str += nxtStr; 
-			};
-		};
-		return str;
-	};
-	
-	ebay.MaintParm = function(request){
-		var nsitems = request.getParameter('nsitems');
-		var partstr = request.getParameter('partstr');
-		var eblstngs = request.getParameter('eblstngs');
-		return {
-			nsitems: nsitems,
-			partstr: partstr,
-			eblstngs: eblstngs,
-			hasVals: function() {
-				return (nsitems);
-			},
-			parmObj: function() {
-				return {
-					nsitems: nsitems,
-					eblstngs: eblstngs,
-					partstr: partstr
-				};
-			},
-			parmStr: function(s) {
-				return  (s || '&') + 'nsitems=' + nsitems + '&partstr=' + partstr + '&eblstngs=' + eblstngs;
-			},
-			addHidFlds: function(form) {
-				if (form) {
-					form.addField('nsitems', 'text', '').setDisplayType('hidden').setDefaultValue(nsitems);
-					form.addField('partstr', 'text', '').setDisplayType('hidden').setDefaultValue(partstr);
-					form.addField('eblstngs', 'text', '').setDisplayType('hidden').setDefaultValue(eblstngs);
-				};
-			}
-		};
-	};
+			rtnParm.loadRtnVals('eBay Maint Settings', parm);
 
-	ebay.RtnParm = function(request) {
+			var count = request.getLineItemCount('itemlist');
+			var items = [];
+			var itm;
+			for (var i = 1; i <= count; i++) {
+				itm = request.getLineItemValue('itemlist', 'sublist1', i);
+				if (itm) {
+					items.push( itm );
+				};
+			};
+			if (items.length > 0) {
+				rtnParm.itemstr = items.join();
+			};
+		};
+		
+		var oldHasVals = rtnParm.hasVals;
+		rtnParm.hasVals = function() {
+			return (oldHasVals() && (rtnParm.nsitems));
+		},
+
+		rtnParm.maintParmStr = function(s) {
+			var str = (s || '&') + 'nsitems=' + rtnParm.nsitems 
+				+ '&eblstngs=' + rtnParm.eblstngs
+				+ '&imgid=' + rtnParm.imgid
+				+ '&pageno=' + (rtnParm.pageno || 1);
+			if (rtnParm.itemstr) {
+				str = str + '&itemstr=' + rtnParm.itemstr;
+			};
+			return str;
+		};
+		
+		rtnParm.parmStr = function(s) {
+			return rtnParm.baseParmStr(s) + rtnParm.maintParmStr(); 
+		};
+
+		rtnParm.getParmAsObj = function() {
+			var obj = {
+				rtnscpt: rtnParm.rtnscpt,
+				rtndepl: rtnParm.rtndepl,
+				rtnto: rtnParm.rtnto,
+			};
+			
+			if (rtnParm.parmobj) {
+				obj.nsitems = rtnParm.parmobj.nsitems; 
+				obj.eblstngs = rtnParm.parmobj.eblstngs;
+				obj.imgid = rtnParm.parmobj.imgid;
+				obj.pageno = rtnParm.parmobj.pageno || 1;
+			};
+
+			if (rtnParm.itemstr) {
+				obj.itemstr = rtnParm.itemstr;
+			};
+
+			return obj;
+		};
+
+		rtnParm.loadMaintFromReq = function(request) {
+			rtnParm.loadFromReq(request);
+			rtnParm.nsitems = request.getParameter('nsitems');
+			rtnParm.eblstngs = request.getParameter('eblstngs');
+			rtnParm.imgid = request.getParameter('imgid');
+			rtnParm.pageno = request.getParameter('pageno') || 1;
+			rtnParm.itemstr = request.getParameter('itemstr');
+			
+			rtnParm.parmobj = {
+					nsitems: rtnParm.nsitems,
+					eblstngs: rtnParm.eblstngs,
+					imgid: rtnParm.imgid,
+					pageno: rtnParm.pageno,
+					itemstr: rtnParm.itemstr
+			};
+		};
+
+		rtnParm.addHidFlds = function(form) {
+			if (form) {
+				form.addField('rtnscpt', 'text', '').setDisplayType('hidden').setDefaultValue(rtnParm.rtnscpt);
+				form.addField('rtndepl', 'text', '').setDisplayType('hidden').setDefaultValue(rtnParm.rtndepl);
+				form.addField('rtnto', 'text', '').setDisplayType('hidden').setDefaultValue(rtnParm.rtnto);
+				form.addField('nsitems', 'text', '').setDisplayType('hidden').setDefaultValue(rtnParm.nsitems);
+				form.addField('eblstngs', 'text', '').setDisplayType('hidden').setDefaultValue(rtnParm.eblstngs);
+				form.addField('imgid', 'text', '').setDisplayType('hidden').setDefaultValue(rtnParm.imgid);
+				form.addField('pageno', 'text', '').setDisplayType('hidden').setDefaultValue(rtnParm.pageno || 1);
+				form.addField('itemstr', 'text', '').setDisplayType('hidden').setDefaultValue(rtnParm.itemstr);
+			};
+		};
+		
+		rtnParm.cloneParm = function() {
+			var clone = ebay.getMaintRtnParm();
+			clone.rtnscpt = rtnParm.rtnscpt;
+			clone.rtndepl = rtnParm.rtndepl;
+			clone.rtnto = rtnParm.rtnto;
+			clone.nsitems = rtnParm.nsitems;
+			clone.eblstngs = rtnParm.eblstngs;
+			clone.imgid = rtnParm.imgid;
+			clone.pageno = rtnParm.pageno;
+			clone.itemstr = rtnParm.itemstr;
+			clone.parmobj = rtnParm.parmobj
+			return clone;
+		};
+		
+		return rtnParm;
+	};
+	
+	ebay.getRtnParm = function() {
 		var rtnParm = {
-			//rawRtnUrl: request.getParameter('rtnurl'),
-			// get rtnurl() {return escape(rtnParm.rawRtnUrl);},
-			// set rtnurl(url) {rtnParm.rawRtnUrl = url;},
+			rtnscpt: null,
+			rtndepl: null,
+			rtnto: 'return',
+			parmobj: null,
 
-			rtnscpt: request.getParameter('rtnscpt'),
-			rtndepl: request.getParameter('rtndepl'),
-			rtnparm: request.getParameter('rtnparm'),
-			rtnto: request.getParameter('rtnto') || 'return',
-
+			loadFromReq: function(request) {
+				rtnParm.rtnscpt = request.getParameter('rtnscpt');
+				rtnParm.rtndepl = request.getParameter('rtndepl');
+				rtnParm.rtnto = request.getParameter('rtnto') || 'return';
+				
+				var parmNames = request.getParameterValues('rtnpnam');
+				var parmVals = request.getParameterValues('rtnpval');
+				
+				if ((parmNames) && (parmNames.length > 0) && (parmVals) && (parmVals.length > 0) ) {
+					rtnParm.parmobj = {};
+					for (var i = 0, cnt = Math.min(parmNames.length, parmVals.length); i < cnt; i++) {
+						rtnParm.parmobj[parmNames[i]] = parmVals[i];
+					}
+				} else {
+					rtnParm.parmobj = null;
+				};
+			},
+			
 			hasVals: function() {
 				return ((rtnParm.rtnscpt) && (rtnParm.rtndepl));
 			},
-			parmObj: function() {
-				return fltn({
-					rtnscpt: rtnParm.rtnscpt,
-					rtndepl: rtnParm.rtndepl,
-					rtnparm: rtnParm.rtnparm,
-					rtnto: rtnParm.rtnto
-				});
+
+			loadRtnVals: function(title, parm, cntx) {
+				var context = cntx || nlapiGetContext();
+				rtnParm.rtnscpt = context.getScriptId();
+				rtnParm.rtndepl = context.getDeploymentId();
+				rtnParm.rtnto = title || 'return';
+				rtnParm.parmobj = parm;
 			},
+		
+			getParmObjStr: function() {
+				var str = '';
+				var obj = rtnParm.parmobj;
+				for (var key in obj) {
+					str = str + '&rtnpnam=' + key + '&rtnpval=' + obj[key];
+				};
+				return str;
+			},
+			
+			baseParmStr: function(s) {
+				return (s || '&') + 'rtnscpt=' + rtnParm.rtnscpt + '&rtndepl=' + rtnParm.rtndepl + '&rtnto=' + rtnParm.rtnto;
+			},
+			
 			parmStr: function(s) {
-				return  (s || '&') + srlz(rtnParm.parmObj());
+				var str =  rtnParm.baseParmStr(s);
+				if (rtnParm.parmobj) {
+					str = str + rtnParm.getParmObjStr();
+				};
+				return str;
 			},
-			addHidFlds: function(form) {
+			
+			rtnUrl: function() {
+				var str = nlapiResolveURL('SUITELET', rtnParm.rtnscpt, rtnParm.rtndepl, null);
+				if (rtnParm.parmobj) {
+					str = str + '&' + jPw.param(rtnParm.parmobj);
+				};
+				return str;
+			},
+
+			/*addHidFlds: function(form) {
 				if (form) {
-					//form.addField('rtnurl', 'text', '').setDisplayType('hidden').setDefaultValue(rtnParm.rtnurl);
 					form.addField('rtnscpt', 'text', '').setDisplayType('hidden').setDefaultValue(rtnParm.rtnscpt);
 					form.addField('rtndepl', 'text', '').setDisplayType('hidden').setDefaultValue(rtnParm.rtndepl);
 					form.addField('rtnto', 'text', '').setDisplayType('hidden').setDefaultValue(rtnParm.rtnto);
+					form.addField('parmobj', 'text', '').setDisplayType('hidden').setDefaultValue(rtnParm.getParmObjStr());
 				};
-			}
+			}*/
 		};
 
-		for (var parm in request.parameters) {
-			if (!request.parameters.hasOwnProperty(parm)) continue;
-			
-			rtnParm[parm] = request.parameters[parm]; 
-		};
-		
 		return rtnParm;
 	};
 	
 	ebay.eBayMaintSettings = function(request, response){
 		var form;
 		if ( request.getMethod() == 'GET' ) {
-			
-			var maintParm = ebay.MaintParm(request);
+			var maintParm = ebay.getMaintRtnParm();
+			maintParm.loadInGet(request);
 
 			form = nlapiCreateForm('eBay Maintnenace');
+
+			var groupe = form.addFieldGroup('groupe', 'eBay');
+			var chx = form.addField('eblstngs', 'checkbox', 'Include eBay Listings', null, 'groupe').setLayoutType('midrow');
+			if (maintParm.eblstngs) {
+				chx.setDefaultValue(maintParm.eblstngs);
+			} else {
+				chx.setDefaultValue('T');
+			};
 
 			var groupn = form.addFieldGroup('groupn', 'NetSuite Items');
 			var select = form.addField('nsitems', 'select', 'List NetSuite Items:', null, 'groupn').setLayoutType('midrow');
@@ -871,26 +1237,40 @@ function suitelet(request, response){
 				select.setDefaultValue(maintParm.nsitems);
 			};
 
-			var groupp = form.addFieldGroup('groupp', ' ');
-			var partStr = form.addField('partstr', 'longtext', 'Part#(s):', null, 'groupp').setLayoutType('midrow').setDisplaySize(100, 2);
-			if (maintParm.partstr) {
-				partStr.setDefaultValue(maintParm.partstr);
+			var groupi = form.addFieldGroup('groupi', 'NetSuite Images');
+			//var partStr = form.addField('partstr', 'longtext', 'Part#(s):', null, 'groupi').setLayoutType('midrow').setDisplaySize(100, 2);
+			var imgFld = form.addField('imgid', 'image', 'Limit to this Image:', null, 'groupi').setLayoutType('midrow');
+			if (maintParm.imgid) {
+				imgFld.setDefaultValue(maintParm.imgid);
 			};
 			
-			var groupe = form.addFieldGroup('groupe', 'eBay');
-			var chx = form.addField('eblstngs', 'checkbox', 'Include eBay Listings', null, 'groupe').setLayoutType('midrow');
-			if (maintParm.eblstngs) {
-				chx.setDefaultValue(maintParm.eblstngs);
-			} else {
-				chx.setDefaultValue('T');
-			};
+			var itemlist = form.addSubList('itemlist', 'inlineeditor', 'Limit to these Items');
+			itemlist.addField('sublist1', 'select', 'NetSuite Item', 'item');
+			//itemlist.addField('sublist2','text', 'Name');
+			itemlist.setUniqueField('sublist1');
 			
+			if (maintParm.itemstr) {
+				var itemsArr = maintParm.itemstr.split(',');
+				var objs = [];
+				jPw.each(itemsArr, function(idx) {
+					var itm = this.trim();
+					if (itm) {
+						objs.push({sublist1: itm});						
+					};
+				});
+				if (objs.length > 0) {
+					itemlist.setLineItemValues(objs);
+				};
+			};
+
 	        form.addSubmitButton('Generate List');
         
 	        response.writePage( form );
 		} else if ( request.getMethod() == 'POST' ) {
-			var maintParm = ebay.MaintParm(request);
-			nlapiSetRedirectURL('SUITELET', 'customscript_ebay_maint_list','customdeploy_ebay_maint_list', null, maintParm.parmObj());
+			var maintParm = ebay.getMaintRtnParm();
+			maintParm.loadInPost(request);
+			
+			nlapiSetRedirectURL('SUITELET', 'customscript_ebay_maint_list','customdeploy_ebay_maint_list', null, maintParm.getParmAsObj());
 			/*
 			form = nlapiCreateForm('eBay Maintneance post');
 			form.addField('b', 'text', 'best').setDefaultValue(best);
@@ -906,7 +1286,8 @@ function suitelet(request, response){
 	};
 	
 	ebay.eBayMaintList = function(request, response){
-		 var maintParm = ebay.MaintParm(request);
+		 var maintParm = ebay.getMaintRtnParm();    //ebay.MaintParm(request);
+		 maintParm.loadMaintFromReq(request);
 		
 		if (!maintParm.eblstngs) {
 			maintParm.eblstngs = 'F';
@@ -923,53 +1304,108 @@ function suitelet(request, response){
 			  'and',
 			  ['name', 'doesnotcontain', 'Master']
 			], 
-			[new nlobjSearchColumn('name'),
+			[new nlobjSearchColumn('name').setSort(),
 			 new nlobjSearchColumn('custitem_leather_kit_type'),
 			 new nlobjSearchColumn('custitem_prod_cat'),
 			 new nlobjSearchColumn('custitem_ebay_candidate'),
 			 new nlobjSearchColumn('custitem_item_prod_ctlg'),
 			 new nlobjSearchColumn('custitem_ebay_listing_id'),
-			 new nlobjSearchColumn('custitem_ebay_listing_url')		
+			 new nlobjSearchColumn('custitem_ebay_listing_url'),
+			 new nlobjSearchColumn('custitem_rows')
 			]);
 
 		var listFilt = [];
-		var partsArr = null;
-		if (maintParm.partstr) {
-			partsArr = maintParm.partstr.split(',');
-			jPw.each(partsArr, function(idx) {
-				part = this.trim();
-				if (part) {
+		var itemsArr = null;
+		
+		if (maintParm.imgid) {
+			itemsArr = jPw.ebay.getLstngIdsForImage(maintParm.imgid);
+			if (itemsArr.length < 1) {
+				itemsArr = [-1];	
+			};
+		} else if (maintParm.itemstr) {
+			itemsArr = maintParm.itemstr.split(',');
+			var itemsArr = jPw.map(maintParm.itemstr.split(','), function() {
+				var itm = this.trim();
+				if (itm) {
+					return itm;
+				};
+			});
+		}; 
+			
+		if ((itemsArr) && (itemsArr.length > 0)) {
+			jPw.each(itemsArr, function(idx) {
+				var itemid = this;
+				if (itemid) {
 					if (idx > 0) {
 						listFilt.push('or');
 					};
-					listFilt.push(['name', 'startswith', part]);
+					listFilt.push(['internalid', 'is', itemid]);
 				};
 			});
 		} else {
-			listFilt = jPw.ebay.maintLstMap[maintParm.nsitems].filter;
+			var filtMap = jPw.ebay.maintLstMap[maintParm.nsitems];
+			if (filtMap) {
+				listFilt = filtMap.filter;
+			};
 		};
 
 		var records = [];
+		var map = {};
+		var totalRecs = 0;
+		var partsArr = null;
+		
 		if (listFilt.length > 0) {
 			search.addFilt('and');	 
 			search.addFilt(listFilt);	 
-			records = search.results();
+			//records = search.results();
+			totalRecs = search.totalCount();
+			partsArr = [];
+		};
+		
+		var chunk = 50;
+		var pages = jPw.pageArr(totalRecs, chunk);
+		
+		var thisPage = null;
+		if (totalRecs > 0) {
+		    maintParm.pageno = Math.min(maintParm.pageno, pages.length);
+		    thisPage = pages[maintParm.pageno-1];
+		    
+			var recFcn = function(record) {
+				records.push(record);
+				var nameNoHier = record.nameNoHier();
+
+				partsArr.push(nameNoHier);
+				
+				map[nameNoHier] = map[nameNoHier] || {};	
+				map[nameNoHier].record = record;			
+			};
+			search.loopChunk(recFcn, thisPage.from, thisPage.to);
+		};
+		
+		var listings = [];
+		if (maintParm.eblstngs == 'T') {
+			
+			if ( (partsArr) && (partsArr.length > 0) ) { // items were searched and SOME found
+				listings = jPw.ebay.getActiveListingArr({skuArr: partsArr});	
+			} else if ( (partsArr) && (partsArr.length < 1) ) { // items were searched and NONE found
+				listings = [];
+				maintParm.pageno = 1;
+			} else {          // no items, so just return listings 
+				var lstngParm = {page: maintParm.pageno, qty: chunk};
+
+				listings = jPw.ebay.getActiveListingArr(lstngParm);
+				
+				pages = jPw.pageArr(lstngParm.totalQty, chunk);
+				maintParm.pageno = lstngParm.page;
+				thisPage = pages[maintParm.pageno-1];
+			};
 		};
 
-		var listings;
-		if (maintParm.eblstngs == 'T') { 
-			listings = jPw.ebay.getActiveListingArr(partsArr);
-		} else {
-			listings = [];
+		var listingsCnt = 0;
+		if (listings) {
+			listingsCnt = listings.length;
 		};
-
-		var map = {};
-		jPw.each(records, function() {
-			var record = this;
-			var nameNoHier = record.nameNoHier();			
-			map[nameNoHier] = map[nameNoHier] || {};	// map[record.basePartNo] = map[record.basePartNo] || {};
-			map[nameNoHier].record = record;			// map[record.basePartNo].record = record;
-		});
+		
 		jPw.each(listings, function() {
 			var listing = this;
 			map[listing.sku] = map[listing.sku] || {};
@@ -982,25 +1418,52 @@ function suitelet(request, response){
 		});
 		
 
-		var title = 'eBay Maintneance List ('+ keys.length+') ' + jPw.ebay.maintLstMap[maintParm.nsitems].text+',';
+		var title = 'eBay Maint. List ';
+		if (thisPage) {
+			title = title + '(' + (thisPage.from+1)+'-'+thisPage.to +') '; 
+		};
+		if (listingsCnt) {
+			title = title + ' ['+listingsCnt+'] ';
+		};
+		title = title + jPw.ebay.maintLstMap[maintParm.nsitems].text+',';
+		
 		if (maintParm.eblstngs != 'T') {
 			title = title + ' No';
 		};
 		title = title + ' eBay Listings';
 		var list = nlapiCreateList(title);
 		
-		var link = nlapiResolveURL('SUITELET', 'customscript_ebay_maint_cfg', 'customdeploy_ebay_maint_cfg', null);
-		link = link + maintParm.parmStr();
-
-		list.addPageLink('crosslink', 'Maintenance Settings', link);
+		//var link = nlapiResolveURL('SUITELET', 'customscript_ebay_maint_cfg', 'customdeploy_ebay_maint_cfg', null);
+		//link = link + maintParm.parmStr();
+		//list.addPageLink('crosslink', 'Maintenance Settings', link);
+        if (maintParm.hasVals()) {
+    		list.addPageLink('crosslink', maintParm.rtnto, maintParm.rtnUrl());
+        };
+        
+        // set up other pages buttons
+        if (pages.length > 1) {
+            var context = nlapiGetContext();
+    		var baseUrl = nlapiResolveURL('SUITELET', context.getScriptId(), context.getDeploymentId(), null);
+    		var pageParm = maintParm.cloneParm();
+    		var idx = 0;
+    	    jPw.each(pages, function() {
+    	    	var page = this;
+    	    	idx ++;
+    			pageParm.pageno = idx;
+    	    	var thisUrl = baseUrl + pageParm.parmStr(); 
+    	    	var script = "window.location.assign('"+thisUrl+"')";
+    			list.addButton('btn'+idx, (page.from+1)+'-'+page.to, script);
+    	    });
+        };
 
 		list.setStyle('grid');
 	   	list.addColumn('partno', 'text', 'Part #');
 	   	list.addColumn('nsname', 'text', 'NS Name').setURL('item_url', true);
+	   	list.addColumn('rows', 'text', 'Rows');
 	   	list.addColumn('ebcand', 'text', 'eBay Cand');
 	   	list.addColumn('nsctlg', 'text', 'NS Catalog');
 	   	list.addColumn('action', 'text', '(+)').setURL('addupd_url', true);
-	   	list.addColumn('info', 'text', '(?)').setURL('lstinfo_url', true);
+	   	list.addColumn('details', 'text', '(?)').setURL('lstinfo_url', true);
 	   	list.addColumn('sku', 'text', 'eBay SKU');
 	   	list.addColumn('ebayitemid', 'text', 'eBay ID').setURL('listing_url', true);
 	   	list.addColumn('syncerr', 'text', '!');
@@ -1058,11 +1521,12 @@ function suitelet(request, response){
 				partno: key,
 				nsname: record ? record.nameNoHier() : null,
 				item_url: record ? nsItemUrl + record.getId() + '&e=T' : null,
+				rows: record ? record.getValue('custitem_rows') : null,
 				ebcand: record ? record.getValue('custitem_ebay_candidate') : null,
 				nsctlg: record ? record.getText('custitem_item_prod_ctlg') : null,
 				action: record ? (listing ? 'update' : 'add') : null,
 				addupd_url: record ? addUpdUrl + '&partno=' + key + '&internalid=' + record.getId() + maintParm.parmStr() : null,
-				info: record ? 'info' : null,
+				details: record ? 'details' : null,
 				lstinfo_url: record ? lstInfoUrl + '&itemid=' + record.getId() + maintParm.parmStr() : null,
 		    	sku: listing ? listing.sku : null,
 		    	price: listing ? listing.price : null,
@@ -1100,11 +1564,13 @@ function suitelet(request, response){
 			ebay.errResp('Either partno parameter or internalid parameter are required.');
 			return;
 		}
-		var maintParm = ebay.MaintParm(request);
+		var maintParm = jPw.ebay.getMaintRtnParm(); // jPw.ebay.MaintParm(request);
+		maintParm.loadMaintFromReq(request);
+		
 		
 		ebay.clearEbayItem({internalId: internalid, submit: true});
 
-		nlapiSetRedirectURL('SUITELET', 'customscript_ebay_maint_list','customdeploy_ebay_maint_list', null, maintParm.parmObj());
+		nlapiSetRedirectURL('SUITELET', 'customscript_ebay_maint_list','customdeploy_ebay_maint_list', null, maintParm.getParmAsObj());
 	};
 }( this.jPw.ebay = this.jPw.ebay || {}));
 
@@ -1113,9 +1579,49 @@ function suitelet(request, response){
  * jPw.ebay.addUpdEbayImage
  */
 (function(ebay) {
-	ebay.addUpdEbayImage = function(imgId){
+	
+	var resolveHttpImgIdUrl = function(file, imgId) {
+		
+		var requestUrl = function(url) {
+			try {
+				var resp = nlapiRequestURL( url );
+				var code = resp.getCode();
+				var err = resp.getError();
+				if (err) {
+					return false;
+				} else if (code == 200) {
+					return true;
+				} else {
+					return false;
+				};
+			} catch (e) {
+				return false;
+			};
+		};
+		
+		var fileUrl = file.getURL();
 
-		var file = nlapiLoadFile(imgId);
+		var nsUrl = 'http://shopping.netsuite.com' + fileUrl;
+		if (requestUrl(nsUrl)) {
+			return nsUrl;
+		} else  {
+			var bizUrl = 'http://roadwire.biz/netsuitefile/' + imgId;
+			if (requestUrl(bizUrl)) {
+				return bizUrl;
+			};
+		};
+		return false;
+	};
+	
+	ebay.addUpdEbayImage = function(imgId, imgFile){
+		var file;
+		if (imgFile) {
+			file = imgFile;
+			imgId = file.getId();
+		} else {
+			file = nlapiLoadFile(imgId);
+		};
+		
 		if (!file) {
 			var msg = 'Failed to find image file for id "'+imgId+'".';
 			nlapiLogExecution('ERROR', msg);
@@ -1134,10 +1640,23 @@ function suitelet(request, response){
 		};
 		
 		var api = jPw.apiet.makeUploadSiteHostedPicturesRequest(); 
-
-		api.setExternalPictureURL('http://roadwire.biz/netsuitefile/' + imgId);
+		
+		var pictUrl = resolveHttpImgIdUrl(file, imgId);
+		if (!pictUrl) {
+			var msg = 'Failed to resolve image url for id "'+imgId+'".';
+			nlapiLogExecution('ERROR', msg);
+			throw nlapiCreateError('FILE_URL_FAILED', msg);
+			return;
+		};
+		api.setExternalPictureURL( pictUrl );
+		//api.setExternalPictureURL('http://roadwire.biz/netsuitefile/' + imgId);
 		
 		api.setPictureName(file.getName());
+		
+		//JPW
+		//response.setContentType('XMLDOC');
+		//response.write( api.getXmlEncode() );
+		//return;
 		
 		var retUrl;
 		api.callApiCallback( 
@@ -1180,16 +1699,17 @@ function suitelet(request, response){
  * jPw.ebay.eBayAddUpdListing
  * Suitelet proceudure to add NetSuite Item as an eBay Listing
  */
+
 (function(ebay) {
 
-	var getNsPart = function(internalid) {
+	ebay.getNsPart = function(internalid) {
 		var results = nlapiSearchRecord('item', null, 
 			[new nlobjSearchFilter('isinactive', null, 'is', 'F'),			// this item is active
 			new nlobjSearchFilter('type', null, 'is', 'InvtPart'),  		// this is an inventory item
 			new nlobjSearchFilter('internalid', null, 'is', internalid)	], 
 			[new nlobjSearchColumn('name'),
 			new nlobjSearchColumn('custitem_leather_kit_type'),
-			new nlobjSearchColumn('custitem_prod_cat')	]);
+			new nlobjSearchColumn('custitem_prod_cat') ]);
 
 		if ((results) && (results.length > 0)) {
 			var result = results[0];
@@ -1206,51 +1726,75 @@ function suitelet(request, response){
 			var parts = jPw.parts.eBayPartsList(search, true, 1);
 
 			if ((parts) && (parts.length > 0)) {
+				
 				var part = parts[0];
+				
+				calcCfg(ctgryId, subId, ctlgId, itemId);
+				
+				part.lstgCfg = ebay.lstgCfgs().calcCfg(part.category, part.sub_category, null, part.item_id);
+				
 				return part;
 			};
 		};
 	};
+
+	//ctgry = '30120' ; //'14112'; //Everything Else > Test Auctions > eBay Use Only - from testing with eBay
+	//if (ctgry != '30120')   					// this was just in here for eBay testing
+		//obj.setItemProp('ConditionID', '1000'); // Condition does not work with  Everything Else > Test Auctions > eBay Use Only	
+
+	var seatCovCtgry = '33702'; 	// seat covers
+	//var rstrFabrCtgry = '111114';	// Services & Installation / Restoration & Fabrication
+	var heatPartCtgry = '33548'; 	//Parts & Accessories > Car & Truck Parts > Air Conditioning & Heat > Heater Parts
 	
-	var updatePartImgs = function (part) {
+	var leaNsCtgry = 9;
+	var htrNsCtgry = 6;
+	
+	ebay.makeCtgryItemRequest = function(nsCtgry, ebCtgry) {
+		var obj = jPw.apiet.makeRwNewItemRequest();
+		var cfg = ebay.lstgCfgs().calcCfg(nsCtgry);
+
+		var ctgry1 = cfg.ctgry1 || ebCtgry;           
+		obj.setItemProp('PrimaryCategory', { 'CategoryID': ctgry1 });
+		
+		if (cfg.ctgry2) {
+			obj.setItemProp('SecondaryCategory', { 'CategoryID': cfg.ctgry2 });		
+		};		
+
+		return obj;
+	};
+	
+	ebay.makeHeaterItemRequest = function () {
+		var obj = apiet.makeRwNewItemRequest();
+		var cfg = ebay.lstgCfgs().calcCfg(htrNsCtgry); 
+
+		var ctgry1 = cfg.ctgry1 || heatPartCtgry;
+		obj.setItemProp('PrimaryCategory', { 'CategoryID': ctgry1 });	
+
+		if (cfg.ctgry2) {
+			obj.setItemProp('SecondaryCategory', { 'CategoryID': cfg.ctgry2 });		
+		};		
+		
+		return obj;
+	};
+	
+	ebay.makeApiForPartCtgry = function(part) {
+		var api;
+		if (part.category == leaNsCtgry) { 				// leather
+			api = ebay.makeCtgryItemRequest(leaNsCtgry, seatCovCtgry);
+		} else if (part.category == htrNsCtgry) { 			// heater
+			api = ebay.makeCtgryItemRequest(htrNsCtgry, heatPartCtgry);
+		} else {
+			api = jPw.apiet.makeRwNewItemRequest();
+		};
+		return api;
+	};
+	
+	ebay.updatePartImgs = function (part) {
 		part.ebay_img_url = ebay.addUpdEbayImage(part.img_id);
 		part.ebay_thumb_url = ebay.addUpdEbayImage(part.thumb_id);
-		//JPW check overrides 
-        //if (env.leaImg1Id) {
-        //	var lea_img1_url = ebay.addUpdEbayImage(env.leaImg1Id);
-        //	api.addPictureURL(lea_img1_url);
-        	//part.img_id = env.leaImg1Id;
-        	//part.thumb_id = env.leaImg1Id;
-        //};
 	};
 	
-	var loadDescription = function (part, api, lstngFileId) {
-		//var cfg = ebay.getEbayCfg();
-		var file = nlapiLoadFile(lstngFileId);
-		
-		var descr;
-		if (file) {
-			descr = file.getValue();
-		} else {
-			descr = '<H1>'+part.descr+'</H1>';
-		};
-		if (descr) {
-			api.setItemPropCdata("Description", descr);
-		};
-	};
-	
-	var loadLeaReq = function (part, api) {
-		api.setPartNo(part.ns_part);
-	    api.setNsItemId(part.item_id);
-
-	    api.setTitle(part.color.slice(4) +' '+ part.descr);
-		api.setSubTitle(part.store_descr || part.slctr_descr);
-		
-		//api.setStartPrice(part.price);
-		api.calcLeaStartPrice(part.rows, part.price);
-
-		//api.setItemProp("PrivateNotes", "PrivateNotes");
-
+	ebay.loadPartImgsToApi = function (part, api) {
 		//PictureDetails
 		if (part.img_id) {
 			api.addPictureURL(part.ebay_img_url);
@@ -1258,7 +1802,31 @@ function suitelet(request, response){
 		if (part.thumb_id) {
 			api.addPictureURL(part.ebay_thumb_url);
 		};
-	    
+	};
+	
+	ebay.loadReqImgs = function(part, api) {
+		//PictureDetails
+		ebay.updatePartImgs(part);
+		ebay.loadPartImgsToApi(part, api);
+	};
+
+	ebay.loadReqPartIds = function (part, api) {
+		api.setPartNo(part.ns_part);
+	    api.setNsItemId(part.item_id);
+	};
+	
+	var loadLeaReq = function (part, api, env) {
+		ebay.loadReqPartIds(part, api);
+
+	    api.setTitle(part.color.slice(4) +' '+ part.descr);
+		//JPWxx api.setSubTitle(env.subTitle);
+		
+		//api.setStartPrice(part.price);
+		api.calcLeaStartPrice(part.rows, part.price);
+		//jpwxx api.calcLeaRetailPrice(part.rows, part.retail);
+
+		//api.setItemProp("PrivateNotes", "PrivateNotes");
+
 		//ItemSpecifics
 		api.addItemSpecific("Leather Color", part.color);
 		api.addItemSpecific("Rows", part.rows);
@@ -1271,34 +1839,67 @@ function suitelet(request, response){
 		//addItemReq.addCompatMkYrMdTr("Toyota","2013","Camry","Hybrid LE Sedan 4-Door");
 	};
 	
-	var loadHeaterReq = function (part, api) {
-		api.setPartNo(part.ns_part);
-	    api.setNsItemId(part.item_id);
+	var loadHeaterReq = function(part, api, env) {
+		ebay.loadReqPartIds(part, api);
 
 	    api.setTitle(part.descr);
-		api.setSubTitle(part.store_descr || part.slctr_descr);
+		//jpwxx api.setSubTitle(env.subTitle);
 		
-		api.calcHeaterStartPrice(part.price);
-
-		//PictureDetails
-		if (part.img_id) {
-			api.addPictureURL(part.ebay_img_url);
+		//jpwxx api.calcHeaterStartPrice(part.price);
+	    api.setStartPrice(part.price);
+	    api.setRetailPrice(part.retail);
+	};
+	
+	ebay.loadReqForCtgry = function(part, api, env) {
+		if (part.category == leaNsCtgry) { 		// leather
+			loadLeaReq(part, api, env);
+		} else if (part.category == htrNsCtgry) { 	// heater
+			loadHeaterReq(part, api, env);
 		};
-		if (part.thumb_id) {
-			api.addPictureURL(part.ebay_thumb_url);
+	};
+
+	var loadDescription = function (part, api, lstngFileId) {
+		var file;
+		var descr;
+		if (lstngFileId) {
+			file = nlapiLoadFile(lstngFileId);
+		};
+		if (file) {
+			descr = file.getValue();
+		} else {
+			descr = '<H1>'+part.descr+'</H1>';
+		};
+		if (descr) {
+			api.setItemPropCdata("Description", descr);
+		};
+	};
+	
+	ebay.loadReqDescription = function(part, api, env) {
+		if (part.category == leaNsCtgry) { 		// leather
+			//jpwxx loadDescription(part, api, env.lstngLeaFileId);
+		} else if (part.category == htrNsCtgry) { 	// heater
+			//jpwxx loadDescription(part, api, env.lstngHtrFileId);
 		};
 	};
 	
 	ebay.addUpdListing = function(partno, internalid) {
-		var part =  getNsPart(internalid);
+		jPw.ebay.apiXmlInErr = null;
+		jPw.ebay.apiXmErrResp = null;
+
+		var part =  ebay.getNsPart(internalid);
 		if (!part) {
 			var msg = 'No Item was found for internalid '+internalid+'.';
 			throw nlapiCreateError('PARAM_ERROR', msg);
 			return;
 		};
+		if (!part.ebayCandidate) {
+			var msg = part.ns_part + ' is not an eBay Candidate.';
+			throw nlapiCreateError('EBAY_ERROR', msg);
+			return;
+		};
 		
 		var listing = null;
-		var listings = jPw.ebay.getActiveListingArr([partno]);
+		var listings = jPw.ebay.getActiveListingArr({skuArr: [partno]});
 		if ((listings) && (listings.length > 0)) {
 			listing = listings[0];
 		};
@@ -1313,45 +1914,23 @@ function suitelet(request, response){
 			avail = listing.avail;
 		} else { // add new listing
 			msgCorrId = 'Add';
-			
-			if (part.prodCtgry == 9) { 			// leather
-				api = jPw.apiet.makeLeatherItemRequest();
-			} else if (part.prodCtgry == 6) { 	// heater
-				api = jPw.apiet.makeHeaterItemRequest();
-			} else {
-				api = jPw.apiet.makeAddFixedPriceItemRequest();
-			};
-			
+			api = ebay.makeApiForPartCtgry(part);
 			avail = 10;
 			api.setItemProp('Quantity', avail);
 		};
 
 		var env = api.getEnvironment(); 
 		
-		updatePartImgs(part, env);
-
-		if (part.prodCtgry == 9) { 			// leather
-			loadLeaReq(part, api);
-		} else if (part.prodCtgry == 6) { 	// heater
-			loadHeaterReq(part, api);
-		};
+		ebay.loadReqForCtgry(part, api, env);
+		ebay.loadReqImgs(part, api);
+		ebay.loadReqDescription(part, api, env);
 		
-		loadDescription(part, api, env.lstngFileId);
-
 		msgCorrId = msgCorrId + ' ' + partno; 
         api.setRequestProp("MessageID", 'Add ' + msgCorrId);
-
-		//JPW check overrides 
-        if (env.ovrdTitle) {
-        	api.setTitle(env.ovrdTitle);	
-        };
-        if (env.ovrdDescr) {
-        	api.setItemProp('Description', env.ovrdDescr);
-        };
 		
-		//JPW
-		/*xml = api.getXmlEncode();		
-		return xml;*/
+	//JPW
+	//var xml = api.getXmlEncode();		
+	//return xml;
 
 		api.callApiCallback( 
 			function(obj){
@@ -1365,6 +1944,8 @@ function suitelet(request, response){
 			    ebay.updEbayItem({internalId: internalid, eBayItemId: eBayItemId, eBayUrl: viewItemURL, avail: avail, submit: true});
 			}, 
 			function(obj){
+				jPw.ebay.apiXmlInErr = api.getXmlEncode();
+				jPw.ebay.apiXmErrResp = obj.respXmlStr;
 				//response.setContentType('XMLDOC');			    response.write( obj.respXmlObj );
 				var msg = 'Add/Upd Leather Listing Err: ' + obj.getRespAnyVal('ShortMessage') + ' ' + obj.getRespAnyVal('LongMessage');
 				throw nlapiCreateError('API_ERROR_RESPONSE', msg);
@@ -1380,35 +1961,151 @@ function suitelet(request, response){
 			ebay.errResp('Both partno parameter and internalid parameter are required.');
 			return;
 		}
+
+		jPw.ebay.apiXmlInErr = null;
+		jPw.ebay.apiXmErrResp = null;
+
 	    try {
-			var maintParm = ebay.MaintParm(request);
-			//JPW
-			/*var xmlStr = ebay.addUpdListing(partno, internalid);
-			response.setContentType('XMLDOC');
-			response.write( xmlStr );
-			return;*/
+			var maintParm = jPw.ebay.getMaintRtnParm(); // jPw.ebay.MaintParm(request);
+			maintParm.loadMaintFromReq(request);
+			
+			var rtnParm;
+			if (!maintParm.hasVals()) {
+				rtnParm = jPw.ebay.getRtnParm();
+				rtnParm.loadFromReq(request);
+			};
+			
+//JPW
+//var xmlStr = ebay.addUpdListing(partno, internalid);
+//response.setContentType('XMLDOC');
+//response.write( xmlStr );
+//response.setContentType('PLAINTEXT', 'test.txt', 'inline');
+//response.write( xmlStr );
+//return;
 			
 			ebay.addUpdListing(partno, internalid);
-	    	nlapiSetRedirectURL('SUITELET', 'customscript_ebay_maint_list','customdeploy_ebay_maint_list', null, maintParm.parmObj());		
+			 
+			if ((rtnParm) && (rtnParm.hasVals())) {
+	        	nlapiSetRedirectURL('SUITELET', rtnParm.rtnscpt, rtnParm.rtndepl,  null, rtnParm.parmobj);
+	        } else if (maintParm.hasVals()) {
+				nlapiSetRedirectURL('SUITELET', 'customscript_ebay_maint_list','customdeploy_ebay_maint_list', null, maintParm.getParmAsObj());
+			};
 		} catch (e) {
-			if ( e instanceof nlobjError ) {
+			if ((jPw.ebay.apiXmlInErr) || (jPw.ebay.apiXmErrResp)) {
+				var errStr = '=== API ERROR OUTPUT ===';
+				if (jPw.ebay.apiXmErrResp) {
+					errStr = errSt + '\n' + '=== ERROR REPSONSE ===' + '\n' + jPw.ebay.apiXmErrResp;
+				}
+				if (jPw.ebay.apiXmlInErr) {
+					errStr = errSt + '\n' + '=== API CALL ===' + '\n' + jPw.ebay.apiXmlInErr;
+				}
+				response.setContentType('PLAINTEXT', 'test.txt', 'inline');
+				response.write( errStr );
+			} else if ( e instanceof nlobjError ) {
 				nlapiLogExecution( 'ERROR', e.getCode(), e.getDetails() );
 				ebay.errResp(e.getCode() +': '+ e.getDetails());
 			} else {
-				nlapiLogExecution( 'ERROR', 'Unexpected Error', e.toString() )
+				nlapiLogExecution( 'ERROR', 'Unexpected Error', e.toString() );
 				ebay.errResp('Unexpected Error' + '\n' + e.toString());
 			};
 			return;
 		};
 	};	
 	
+	ebay.eBayUpdListing = function(parm) {
+		var part = jPw.ebay.getNsPart(parm.internalid);
+	
+		var ebayItemId = part.listingId;
+		
+		var api = jPw.apiet.makeReviseFixedPriceItemRequest();
+		api.setItemID(ebayItemId);
+
+		var env = api.getEnvironment(); 
+		
+		var anyUpdates = false;
+		if (parm.ids) { 
+			jPw.ebay.loadReqPartIds(part, api);
+			anyUpdates = true;
+		};
+		if (parm.imgs) { 
+			jPw.ebay.loadReqImgs(part, api);
+			anyUpdates = true;
+		};
+		if (parm.descr) { 
+			jPw.ebay.loadReqDescription(part, api, env);
+			anyUpdates = true;
+		};
+		//return api.getXmlEncode();
+		
+		var resp = null;
+		if (anyUpdates) {
+			api.callApiCallback( 
+				function(obj){
+					resp = obj.respXmlStr;
+				}, 
+				function(obj){
+					resp = obj.respXmlStr;
+					nlapiLogExecution('ERROR', resp);
+					throw nlapiCreateError('API_ERROR_RESPONSE', 'Xml Response', resp);
+				}
+			);		
+		};
+		return resp;
+	};
+		
 }( this.jPw.ebay = this.jPw.ebay || {}));
+
 
 /*
  * jPw.ebay.eBayAddUpdImage
  * Suitelet proceudure to add NetSuite Item as an eBay Listing
  */
 (function(ebay) {
+
+	ebay.getLstngSearchForImage = function(imgId, file) {
+		if (!file) {
+			file = nlapiLoadFile(imgId);
+			imgId = file.getId();
+		};
+		
+		// NS url for this image id
+		var url = 'http://roadwire.com' + file.getURL();
+		var filter = [ 
+						['custitem_ebay_candidate', 'is', 'T'],
+						'and',
+						['isinactive', 'is', 'F'],
+						'and',
+						['type', 'is', 'InvtPart'], 
+						'and',
+						['custitem_ebay_listing_id', 'isnotempty', null],
+						'and',
+						[ ['imageurl', 'is', url], 'or', ['thumbnailurl', 'is', url] ]						
+					];
+		var search = jPw.SrchObj('item', filter, null);
+		return search;
+	};
+	
+	ebay.getLstngIdsForImage = function(imgId, file) {
+		var search = jPw.ebay.getLstngSearchForImage(imgId);
+		var itmIds = [];
+		search.loopResSet(function(item, i) {
+			itmIds.push(item.getId());
+		});
+		return itmIds;
+	};
+	
+	ebay.UpdListingsForImage = function(imgId, file) {
+		// find any eBay candidate items that use this image as store image or thumbnail
+		var search = jPw.ebay.getLstngSearchForImage(imgId);
+		var itemRecs = search.results();
+		
+		var internalid;
+		jPw.each(itemRecs, function() {
+			internalid = this.getId();
+			// update each NS ebay canidate item's listing's images 
+			ebay.eBayUpdListing({internalid: internalid, imgs: true});	
+		});
+	};
 	
 	ebay.eBayAddUpdImage = function(request, response){
 		var imgId = request.getParameter('imgid');
@@ -1418,15 +2115,30 @@ function suitelet(request, response){
 		};
 
 		try {
-			var rtnParm = ebay.RtnParm(request);
+			var rtnParm = jPw.ebay.getRtnParm();
+			rtnParm.loadFromReq(request);
+			 
+			// find any NS-eBay records for this image id
+			var nsEbImgs = nlapiSearchRecord('customrecord_ebay_image', null,
+					[new nlobjSearchFilter('custrecord_ebay_img_ns_img_id', null, 'is', imgId)]);
+
+			// delete all NS-eBay records for this image id
+			jPw.each(nsEbImgs, function() {
+				var nsEbImgRec = this;
+				nlapiDeleteRecord(nsEbImgRec.getRecordType(), nsEbImgRec.getId());
+			});
+
+			var file = nlapiLoadFile(imgId);
+
+			// create new NS-eBay record for this image id
+			ebay.addUpdEbayImage(imgId, file);
 			
-			//ebay.addUpdEbayImage(imgId);
-			
+			// update eBay candidate listings using this image
+			ebay.UpdListingsForImage(imgId, file);
 
 	        if ((rtnParm) && (rtnParm.hasVals())) {
-	        	response.sendRedirect('SUITELET ', rtnParm.rtnscrpt);
+	        	nlapiSetRedirectURL('SUITELET', rtnParm.rtnscpt, rtnParm.rtndepl,  null, rtnParm.parmobj);
 	        };
-			
 		} catch (e) {
 			if ( e instanceof nlobjError ) {
 				nlapiLogExecution( 'ERROR', e.getCode(), e.getDetails() );
@@ -1437,9 +2149,6 @@ function suitelet(request, response){
 			};
 			return;
 		};
-		
-		
-		ebay.errResp('ebay.eBayAddUpdImage not yet implemented');
 	};
 	
 }( this.jPw.ebay = this.jPw.ebay || {}));
@@ -1525,13 +2234,13 @@ function suitelet(request, response){
 				]);
 		
 		var resultSet = search.runSearch();
-		var max = 30;
+		var max = 12;
 		var loopAdds = function (cntx) {
 			var results = resultSet.getResults(0, max+1);
 			if ((results) && (results.length > 0)) {
 				var count = Math.min(results.length, (max+1));
 				
-				nlapiLogExecution('AUDIT', 'BEGIN Processing '+count+' import records. Remaining Usage: ' + ctx.getRemainingUsage());
+				nlapiLogExecution('AUDIT', 'BEGIN Processing '+count+' import records. Remaining Usage: ' + cntx.getRemainingUsage());
 				var resCount = 0;
 
 				var percent;
@@ -1549,7 +2258,15 @@ function suitelet(request, response){
 					var partno = record.nameNoHier();	// basePartNo;
 					var internalid = record.getId(); 
 					
-					jPw.ebay.addUpdListing(partno, internalid);
+					try{
+						jPw.ebay.addUpdListing(partno, internalid);
+					} catch (e) {
+						if ( e instanceof nlobjError ) {
+							nlapiLogExecution( 'ERROR', e.getCode(), e.getDetails() );
+						} else {
+							nlapiLogExecution( 'ERROR', 'Unexpected Error', e.toString() );
+						};
+					};
 					
 					percent = Math.round( (100*(i+1)) / count );
 					context.setPercentComplete( percent );     // calculate the results
@@ -1557,7 +2274,7 @@ function suitelet(request, response){
 					addMsg('Percent: '+percent, 'DEBUG');
 				};
 				
-				nlapiLogExecution('AUDIT', 'END Processed '+resCount+' import records. Remaining Usage: ' + ctx.getRemainingUsage());
+				nlapiLogExecution('AUDIT', 'END Processed '+resCount+' import records. Remaining Usage: ' + cntx.getRemainingUsage());
 				
 				return (results.length > max);
 			} else {
@@ -1916,25 +2633,6 @@ function suitelet(request, response){
 (function(ebay) {
 
 	/*
-	 * jPw.ebay.getFormPickNsItem
-	 * eBay API call to invoke NetSuite form to allow user to enter Item then submit   
-	 */
-	ebay.getFormPickNsItem = function(title, itmCaption, itemFldName) {
-		var ItemFld = itemFldName || 'itemid';
-	      // create the form
-	    var form = nlapiCreateForm(title);
-	    
-	    // add fields to the form
-	    var itmFld = form.addField(ItemFld, 'select', itmCaption, 'item');
-	    itmFld.setMandatory(true);
-	    itmFld.setLayoutType('normal','startcol');
-	    
-	    form.addSubmitButton('Submit');
-	    
-	    return form;
-	};
-	
-	/*
 	 * jPw.ebay.getFormItemListingInfo
 	 * eBay API call to invoke form to display NetSuite Item and associated eBay Listing information
 	 */
@@ -1969,12 +2667,12 @@ function suitelet(request, response){
 		var nameHier = result.getValue('itemid');
 		var nameNoHier = jPw.nameNoHier(nameHier);
 		var nsItemId = result.getId();
-
-		var arry = jPw.ebay.getActiveListingArr([nameNoHier],
-			function(api) {
+		var arry = jPw.ebay.getActiveListingArr({
+			skuArr: [nameNoHier],
+			setupFcn: function(api) {
 				api.addOutputSelector('ItemArray.Item.PictureDetails.PictureURL')
 			},
-			function(listing, itemNode, obj) {
+			itemFcn: function(listing, itemNode, obj) {
 				listing.pictureUrls = [];
 				
 				var pictUrls = obj.getSubVals(itemNode, 'PictureURL');
@@ -1984,7 +2682,7 @@ function suitelet(request, response){
 					listing.pictureUrls.push(pictUrl);
 				});
 			}
-		);
+		});
 
 		var listing = null;
 		if ((arry) && (arry.length > 0)) {
@@ -1996,6 +2694,8 @@ function suitelet(request, response){
 		var field;
 
 		form.addFieldGroup('groupns', 'NetSuite Item').setCollapsible(true, false);
+		
+		var ebayCand = result.getValue('custitem_ebay_candidate');
 		
 		field = form.addField('fieldname', 'text', 'Item Name', null, 'groupns');
 		field.setLayoutType('normal','startcol')
@@ -2009,7 +2709,7 @@ function suitelet(request, response){
 		form.addField('fieldescr', 'text', 'Description', null, 'groupns').setDisplayType('inline').setDefaultValue(result.getValue('salesdescription'));
 		form.addField('fielditmtype', 'text', 'Item Type', null, 'groupns').setDisplayType('inline').setDefaultValue(result.getText('custitem_prod_cat'));
 		form.addField('fieldkittype', 'text', 'Kit Type', null, 'groupns').setDisplayType('inline').setDefaultValue(result.getText('custitem_leather_kit_type'));
-	    form.addField('fieldebaycand', 'checkbox', 'eBay Candidate', null, 'groupns').setDisplayType('disabled').setDefaultValue(result.getValue('custitem_ebay_candidate'));
+	    form.addField('fieldebaycand', 'checkbox', 'eBay Candidate', null, 'groupns').setDisplayType('disabled').setDefaultValue(ebayCand);
 	    form.addField('fieldebayctlg', 'text', 'Catalog(s)', null, 'groupns').setDisplayType('inline').setDefaultValue(result.getText('custitem_item_prod_ctlg'));
 	    //form.addField('fieldurl', 'url', 'eBay Listing', null, 'groupns').setDisplayType( 'inline' ).setLinkText(result.getValue('custitem_ebay_listing_id')).setDefaultValue(result.getValue('custitem_ebay_listing_url'));
 
@@ -2083,19 +2783,14 @@ function suitelet(request, response){
 	        	url: result.getText('storedisplaythumbnail')
 	        }
 	    ];
+
+	    var rtnParm = ebay.getRtnParm();
+   		rtnParm.loadRtnVals(title, {itemid: itemid});
 	    
 		if ((nsCols) && (nsCols.length > 0)) {
 			form.addFieldGroup('groupnsimgs', ' ').setCollapsible(true, false);
 
-			
 	   		var nsEbImgUrllBase = nlapiResolveURL('SUITELET', 'customscript_ebay_pictures','customdeploy_ebay_pictures', null);
-
-			var context = nlapiGetContext();
-			var thisUrlBase = nlapiResolveURL('SUITELET', context.getScriptId(), context.getDeploymentId(), null);
-	   		var thisUrl = thisUrlBase+'&itemid='+itemid;
-	   		var rtnParm = ebay.RtnParm(request);
-	   		rtnParm.rtnurl = thisUrl;
-	   		rtnParm.rtnto = title; 
 	   		
 			var nsMediUrl = '/app/common/media/mediaitem.nl?id=';
 			
@@ -2104,6 +2799,7 @@ function suitelet(request, response){
 		    var rowImgHtml = '';
 		    jPw.each(nsCols, function() {
 		    	var col = this;
+		    	
 		    	nsEbImgUrl = nsEbImgUrllBase + '&imgid='+ col.id + rtnParm.parmStr();
 			    hdrHtml = hdrHtml + '<td class="listheadertd listheadertextb"><div class="listheader">'+col.title+'</div></td>';
 			    rowLinkHtml = rowLinkHtml + '<td valign="top"> <a class="dottedlink" href="' + nsEbImgUrl + '">NetSuite eBay Picture</a> </td>';
@@ -2125,11 +2821,6 @@ function suitelet(request, response){
 	    if (listing) {
 		    form.addFieldGroup('groupebayimgs', ' ');
 
-		    var addUpdUrl = nlapiResolveURL('SUITELET', 'customscript_ebay_listing_addupd','customdeploy_ebay_listing_addupd', null);
-			var script = "window.location.replace('"+addUpdUrl+"')";
-		    //var script = "alert('Uno'); alert('Dos');"; //"nlShowMessage('d', 'f', 'b', 'e')";//"jPw.ebay.testy()"; //"window.location.reload()"; //"alert('Buttoni')";
-	        form.addButton('buttonupdimages', 'Update eBay Images', script);
-		    
 			var hdrHtml = '';
 		    var colHtml = '';
 		    jPw.each(listing.pictureUrls, function(idx, pictUrl) {
@@ -2150,9 +2841,28 @@ function suitelet(request, response){
 			    '</table>';    
 	    
 		    form.addField('fldebayimages', 'inlinehtml', ' ', null, 'groupebayimgs').setDefaultValue(eBayImgsHtml);
+		    
+	    };
+   		
+	    var getAddUpdScript = function() {
+	    	var addUpdUrl = nlapiResolveURL('SUITELET', 'customscript_ebay_listing_addupd','customdeploy_ebay_listing_addupd', null)
+	    		+ '&partno=' + nameNoHier + '&internalid=' + itemid
+	    		+ rtnParm.parmStr();
+			return "window.location.replace('"+addUpdUrl+"')";
 	    };
 	    
-	    //form.setScript('customscript_ebay_item_listing');
+	    if (listing) {
+		    //customscript_ebay_listing_addupd
+		    form.addButton('buttoncancel', 'Update Entire eBay Listing', getAddUpdScript());
+		    //
+	    } else {
+	    	if (ebayCand == 'F') {
+	    		form.addButton('buttoncancel', 'Add to eBay Candidates', "alert('Coming Soon')");
+	    	} else {
+	    		form.addButton('buttoncancel', 'Create New eBay Listing', getAddUpdScript());
+	    	};
+	    };
+	    
 		return form;
 	};
 	 
@@ -2166,19 +2876,21 @@ function suitelet(request, response){
 	 * eBay API call to lookup item then display NetSuite Item and associated eBay Listing information   
 	 */
 	ebay.itemListingInfoLkp = function(request, response){
-		var itemFldName = 'itemid';
+		var title = 'Item eBay Listing - Lookup';
 		if ( request.getMethod() == 'GET' )  {
-		      // create the form
-		    response.writePage( ebay.getFormPickNsItem('Item eBay Listing - Lookup', 'NetSuite Item', itemFldName) );
+		
+			jPw.itemRespFormLkp(response, title);
+
 		} else if ( request.getMethod() == 'POST' ) {
-			var itemid = request.getParameter(itemFldName);
+			var itemid = request.getParameter(jPw.itemParmName);
+			//var form = ebay.getFormItemListingInfo(itemid);
+			//form.addPageLink('breadcrumb', 'Item Lookup', nlapiResolveURL('SUITELET', 'customscript_ebay_item_listing_lkp', 'customdeploy_ebay_item_listing_lkp', null));
+			//response.writePage( form );
+		
+		    var rtnParm = ebay.getRtnParm();
+	   		rtnParm.loadRtnVals(title, {itemid: itemid});
 			
-			var form = ebay.getFormItemListingInfo(itemid);
-			
-			form.addPageLink('breadcrumb', 'Item Lookup', 
-					nlapiResolveURL('SUITELET', 'customscript_ebay_item_listing', 'customdeploy_ebay_item_listing', null));
-			
-			response.writePage( form );
+			nlapiSetRedirectURL('SUITELET', 'customscript_ebay_item_listing','customdeploy_ebay_item_listing', null, {itemid: itemid});
 		};
 	};
 
@@ -2189,7 +2901,8 @@ function suitelet(request, response){
 	ebay.itemListingInfo = function(request, response){
 		var itemid = request.getParameter('itemid');
 		
-		var maintParm = ebay.MaintParm(request);
+		var maintParm = jPw.ebay.getMaintRtnParm(); // jPw.ebay.MaintParm(request);
+		maintParm.loadMaintFromReq(request);
 			
 		var form = ebay.getFormItemListingInfo(itemid);
 		
@@ -2197,8 +2910,34 @@ function suitelet(request, response){
 			var listUrl = nlapiResolveURL('SUITELET', 'customscript_ebay_maint_list','customdeploy_ebay_maint_list', null) + maintParm.parmStr();
 			form.addPageLink('breadcrumb', 'eBay Maintenance List', listUrl);
         };
-			
+		form.addPageLink('breadcrumb', 'Lookup Item eBay Listing', 
+			nlapiResolveURL('SUITELET', 'customscript_ebay_item_listing_lkp', 'customdeploy_ebay_item_listing_lkp', null));
+        			
 		response.writePage( form );
+	};
+
+	
+	ebay.nsImgPictLkp = function(request, response){
+		var title = 'Image eBay Picture - Lookup';
+		var caption = 'NetSuite Image';
+		var fldName = 'imgid';
+
+		if ( request.getMethod() == 'GET' )  {
+			// create the form
+		    var form = nlapiCreateForm(title);
+		    
+		    // add fields to the form
+		    var imgFld = form.addField(fldName, 'image', caption);
+		    imgFld.setMandatory(true);
+		    imgFld.setLayoutType('normal','startcol');
+		    
+		    form.addSubmitButton('Submit');
+
+		    response.writePage(form);	
+		} else if ( request.getMethod() == 'POST' ) {
+			var imgid = request.getParameter(fldName);
+			nlapiSetRedirectURL('SUITELET', 'customscript_ebay_pictures','customdeploy_ebay_pictures', null, {imgid: imgid});
+		};
 	};
 	
 }( this.jPw.ebay = this.jPw.ebay || {}));
@@ -2235,15 +2974,35 @@ function suitelet(request, response){
 			var context = nlapiGetContext();
 			var thisUrlBase = nlapiResolveURL('SUITELET', context.getScriptId(), context.getDeploymentId(), null);
 	   		var thisUrl = thisUrlBase + '&imgid=' + imgId;
-	   		var rtnParm = ebay.RtnParm(request);
-	   		rtnParm.rtnurl = thisUrl;
-	   		rtnParm.rtnto = title; 
+	   		var rtnParm = ebay.getRtnParm();
+	   		rtnParm.loadRtnVals(title, {imgid: imgId});
 	   		
 	   		var updEbImgBase = nlapiResolveURL('SUITELET', 'customscript_ebay_image_addupd', 'customdeploy_ebay_image_addupd', null);
 	   		var getUpdEbImgUrl = function(curImgId) {
+	   			rtnParm.parmobj.imgid = curImgId;
 		   		return updEbImgBase + '&imgid=' + curImgId + rtnParm.parmStr();
 	   		};
+
+	   		var candListBase = nlapiResolveURL('SUITELET', 'customscript_ebay_maint_list', 'customdeploy_ebay_maint_list', null);
+	   		var getCandListUrl = function(curImgId) {
+		   		var maintParm = ebay.getMaintRtnParm();
+		   		maintParm.eblstngs = 'T';
+		   		maintParm.nsitems = 'candOrEB';
+		   		maintParm.imgid = curImgId;
+		   		return candListBase + maintParm.maintParmStr() + rtnParm.parmStr();
+	   		};
 	   		
+	   		/*
+	   		var candListUrl = '/app/site/hosting/scriptlet.nl?script=51&deploy=1&nsitems=candOrEB&eblstngs=T&itemstr=233188%2C203661';	   		
+	   		/app/site/hosting/scriptlet.nl?script=51&deploy=1
+	   				&rtnscpt=customscript_ebay_maint_cfg
+	   				&rtndepl=customdeploy_ebay_maint_cfg
+	   				&rtnto=eBay+Maint+Settings&whence=
+
+	   				&nsitems=candOrEB&eblstngs=T
+	   				&imgid=219
+	   				&pageno=1
+	   		*/
 			var rows = [];
 			jPw.each(imgCache.results, function() {
 		   		var imgRes = this;
@@ -2259,6 +3018,8 @@ function suitelet(request, response){
 		   				  '<li><a class="dottedlink" href="'+ebImgRecUrl+'" target="blank">Edit</a></li>'+
 		   				  '<li><hr></li>'+
 		   				  '<li><a class="dottedlink" href="'+getUpdEbImgUrl(nsImgId)+'">Update eBay</a></li>'+
+		   				  '<li><hr></li>'+
+		   				  '<li><a class="dottedlink" href="'+getCandListUrl(nsImgId)+'">View Candidates</a></li>'+
 		   				'</ul>',
 		   				nsimgid: nsImgId,
 		   				nsimgsrc: '<a href="' + nsMediUrl + nsImgId + '" target="blank"><img src="'+ nsImgUrl +'"></a>',
@@ -2322,9 +3083,10 @@ function suitelet(request, response){
 		var rows = getImgPictRows(imgId, title);
 		var list = createImgPictList(title); 
 
-		var rtnParm = ebay.RtnParm(request);
-        if ((rtnParm) && (rtnParm.hasVals())) {
-    		list.addPageLink('crosslink', rtnParm.rtnto, rtnParm.rtnurl);
+		var rtnParm = ebay.getRtnParm();
+		rtnParm.loadFromReq(request);
+        if (rtnParm.hasVals()) {
+    		list.addPageLink('crosslink', rtnParm.rtnto, rtnParm.rtnUrl());
         };
 		
 		jPw.each(rows, function() {

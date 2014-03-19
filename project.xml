@@ -1,5 +1,8 @@
 <project info="SuiteCloud IDE generated file, do not edit." setAttributesOnUpdate="false">
   <folder name="JPW" bundleable="false">
+    <folder name="Back" bundleable="false">
+      <file name="jPwFormCstSO.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+    </folder>
     <folder name="HTML" bundleable="false">
       <file name="Listing.html" bundleable="false" hideInBundle="false" isOnline="false"/>
     </folder>
@@ -17,6 +20,7 @@
     <file name="EbayParts.js" bundleable="false" hideInBundle="false" isOnline="false"/>
     <file name="PartsListing.js" bundleable="false" hideInBundle="false" isOnline="false"/>
     <file name="RoadwireEbay.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+    <file name="eBayLogo.png" bundleable="false" hideInBundle="false" isOnline="false"/>
     <file name="eBayTradingApi.js" bundleable="false" hideInBundle="false" isOnline="false"/>
     <file name="jPwCars.js" bundleable="false" hideInBundle="false" isOnline="false"/>
     <file name="jPwCatalogs.js" bundleable="false" hideInBundle="false" isOnline="false"/>

@@ -19,7 +19,7 @@
 	var recKitId = 1;  
 	var allKitToken = 'allKitToken';
 	var allKitId = 2;
-	var kitDetailsToken = 'kitDetailsToken';
+	//var kitDetailsToken = 'kitDetailsToken';
 	jPw.TypeBestSeller = 6;	 
 	jPw.TypeOneTone = 1;
 	jPw.TypeSpecialEd = 7;	
@@ -109,7 +109,7 @@
 				,filtDefns: getKitTypeFilts(leaSlctr)
 				,okClickFcn: function(slctr, defn, level){return (!!slctr.results.itemid);}
 		 	}]
-			,function (slctr) {return kitDetailsToken;}
+			//,function (slctr) {return kitDetailsToken;}
 			
 		)
 		.setAltList(allKitToken, [
@@ -119,9 +119,9 @@
 				,filtDefns: getKitTypeFilts(leaSlctr)
 				,okClickFcn: function(slctr, defn, level){return (!!slctr.results.itemid);}
 		 	}]
-			, function (slctr) {return kitDetailsToken;}
+			//, function (slctr) {return kitDetailsToken;}
 		)
-		.setAltList(kitDetailsToken, [
+		/*.setAltList(kitDetailsToken, [
 		 	{type: 'itemqtys', listName: 'qtys', title: 'Warehouse', objName: '', idName: 'locid', valName: 'locName', parms: ['itemid', 'subsid']
 			 	,colsDefn: {
 			 		colsFcn: function (item, defn, slctr) {return [item.name, item.qty, item.subs];}
@@ -129,7 +129,7 @@
 			 	}
 				,okFcn: function(slctr, defn, level){return (!!slctr.results.itemid);}
 		 	}]
-		)
+		)*/
 		;		
 		
 		leaSlctr.tltPrfx = 'Find Leather';
@@ -237,7 +237,6 @@
 			//alert('picked'+dlg.locId);
 			if (slctr.results.itemid) {
 				dlg.startLoading();
-				dlg.close();
 				
 				estShipDate = nlapiDateToString( getEstShipDate() );
 				nlapiSetCurrentLineItemValue('item', 'item', slctr.results.itemid, true, true);
@@ -246,28 +245,30 @@
 
 				//nlapiSetCurrentLineItemValue('item', 'location', slctr.results.locid, true, true);
 				var locId;
-				if (slctr.results.locid) { 				// (dlg.locId) {
-					locId = slctr.results.locid; 		// dlg.locId;
+				if (dlg.locId) {
+					locId = dlg.locId;
 				} else {
 					locId = nlapiGetFieldValue('location');
 				};
 				if (locId) {
 					nlapiSetCurrentLineItemValue('item', 'location', locId, true, true);
 				};
-
+				dlg.close();
 			};
 			return false;
 		};
 		
-		dlgOk(leaDlg);
+		var dlg = jPw.createQtysDialog('inv-qty');
+		dlg.setOkClick(dlgOk);
 		
-		//var dlg = jPw.createQtysDialog('inv-qty');
-		//dlg.setOkClick(dlgOk);
-		//dlg.setTitle('Available Qtys for '+slctr.results.kit.leacolorname+' '+slctr.results.ptrn.seldescr+' '+slctr.results.kit.name);
-		//dlg.open();
-		//var itemid = slctr.results.itemid;
-		//var subsid = nlapiGetFieldValue('subsidiary');
-		//dlg.loadQtys(itemid, subsid, dlgOk);
+		dlg.setTitle('Available Qtys for '+slctr.results.kit.leacolorname+' '+slctr.results.ptrn.seldescr+' '+slctr.results.kit.name);
+		
+		dlg.open();
+		
+		var itemid = slctr.results.itemid;
+		var subsid = nlapiGetFieldValue('subsidiary');
+		
+		dlg.loadQtys(itemid, subsid, dlgOk);
 	};
 	
 	jPw.displayLeaSlctrMnuItm = function(carid) {
@@ -282,7 +283,7 @@
 	};
 	
 	jPw.formPageInit = function(type){
-		
+	
 		jPw.loadjQueryUi( function(script, textStatus) {
 			console.log('Load was performed jquery-ui.');
 			

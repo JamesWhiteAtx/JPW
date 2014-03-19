@@ -159,18 +159,28 @@
 			;
 		var leaColResults = leaColSrch.results();
 		
-		var idxOfLeaCol = function(colId) {
-			if (!colId) {
-				return -1;
+		var idxsOfLeaCol = function(colId) {
+			var idxs = [];
+			if (colId) {
+				for (var i = 0, len = leaColResults.length; i < len; i++) {
+					if (leaColResults[i].getValue('custitem_leather_color') === colId) {
+						idxs.push(i);
+					};
+				};
 			};
-			return jPw.indexOfEval(leaColResults, function(item) {
-				return (item.getValue('custitem_leather_color') === colId); 
-			});
+			return idxs;
+			//return jPw.indexOfEval(leaColResults, function(item) {return (item.getValue('custitem_leather_color') === colId);	});
 		};
 		
 		var getOrAddIdObj = function(arr, obj) {
 			return jPw.getOrAddObj(arr, obj, function(arrItem, compObj) {
 				return (arrItem.id === compObj.id); 
+			});
+		};
+
+		var getOrAddIdObjItm = function(arr, obj) {
+			return jPw.getOrAddObj(arr, obj, function(arrItem, compObj) {
+				return ((arrItem.id === compObj.id) && (arrItem.itmId === compObj.itmId)); 
 			});
 		};
 		
@@ -180,28 +190,34 @@
 				var recCol = this;
 				
 				var recId = recCol.getValue('custrecord_rec_kit_color');
-				var recIdx = idxOfLeaCol(recId);
+				var recIdxs = idxsOfLeaCol(recId);
 				
 				var altId = recCol.getValue('custrecord_alt_kit_color');
-				var altIdx = idxOfLeaCol(altId);
+				var altIdxs = idxsOfLeaCol(altId);
 				
 				var curIntCol = {id: recCol.getValue('custrecord_int_color'), name: recCol.getText('custrecord_int_color'), recs: [], alts: []};
 				var intCol;
 				
-				if ((recId) && (recIdx != -1)) {
+				if ((recIdxs) && (recIdxs.length > 0)) {
 					intCol = getOrAddIdObj(intCols, curIntCol);
-					getOrAddIdObj(intCol.recs, {
-						id: recId, 
-						name: recCol.getText('custrecord_rec_kit_color'),
-						itmId: leaColResults[recIdx].getId()
+					jPw.each(recIdxs, function() {
+						var idx = this;
+						getOrAddIdObjItm(intCol.recs, {
+							id: recId, 
+							name: recCol.getText('custrecord_rec_kit_color'),
+							itmId: leaColResults[idx].getId()
+						});
 					});
 				};
-				if ((altId) && (altIdx != -1)) {
+				if ((altIdxs) && (altIdxs.length > 0)) {
 					intCol = getOrAddIdObj(intCols, curIntCol);
-					getOrAddIdObj(intCol.alts, {
-						id: altId, 
-						name: recCol.getText('custrecord_alt_kit_color'),
-						itmId: leaColResults[altIdx].getId()
+					jPw.each(altIdxs, function() {
+						var idx = this;
+						getOrAddIdObjItm(intCol.alts, {
+							id: altId, 
+							name: recCol.getText('custrecord_alt_kit_color'),
+							itmId: leaColResults[idx].getId()
+						});
 					});
 				};
 			}

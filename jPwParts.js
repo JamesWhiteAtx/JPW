@@ -15,6 +15,8 @@
 	parts.getPartSrchObj = function(filts, cols) {
 		var search = {srchObj: jPw.SrchObj('item', filts, cols)};
 		
+		search.totalCount = search.srchObj.totalCount; 
+		
 		search.addCol = function(col) {
 			search.srchObj.addCol(col);
 			return this;
@@ -55,6 +57,15 @@
 			var resultSet = search.runSearch();
 			jPw.loopResSet(resultSet, passPartFcn, chunk, max);
 			return search;
+		};
+		
+		search.loopChunk = function(fcn, start, end) {
+			var resultSet = search.runSearch();
+			var results = resultSet.getResults(start, end);
+			jPw.each(results, function() {
+				var part = jPw.srchResWrap(this);
+				fcn(part);
+			});
 		};
 		
 		return search;

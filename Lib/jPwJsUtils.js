@@ -96,10 +96,10 @@
 		return -1;
 	};
 
-	jPw.find = function(arr, fcn) { 
+	jPw.findElemEval = function(arr, fcn) { 
 		if (!arr || arr.length === 0) return null;
 		for (var i = 0, len = arr.length; i < len; i++) {
-			if (fcn(arr[i])) {			
+			if (fcn(arr[i], arr, i)) {			
 				return arr[i];
 			};
 		}
@@ -242,6 +242,14 @@
 		return ((typeof val === 'undefined') || (val === null));
 	};
 	
+	jPw.objEmpty = function(obj) { 
+		var name;
+	    for (name in obj) {
+	        return false;
+	    }
+	    return true; 
+	};
+	
 }( this.jPw = this.jPw || {}));
 
 
@@ -300,5 +308,95 @@
 		return '<?xml version="1.0" encoding="utf-8"?>' + jPw.json2xml(o, tab);
 	};
 	
+	jPw.encodeXml = function(s) {
+		if (typeof s == 'string' || s instanceof String) {
+		    return (s
+			        .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')
+			        .replace(/</g, '&lt;').replace(/>/g, '&gt;')
+			        .replace(/\t/g, '&#x9;').replace(/\n/g, '&#xA;').replace(/\r/g, '&#xD;')
+			    );
+		} else {
+			return s;		
+		};	
+	};
+	
 }( this.jPw = this.jPw || {}));
+
+(function(jPw, undefined) {
+
+	jPw.fltn = function(ob) {
+		var toReturn = {};
+		
+		for (var i in ob) {
+			if (!ob.hasOwnProperty(i)) continue;
+			
+			if ((typeof ob[i]) == 'object') {
+				var flatObject = jPw.fltn(ob[i]);
+				for (var x in flatObject) {
+					if (!flatObject.hasOwnProperty(x)) continue;
+					
+					toReturn[x] = flatObject[x];
+				}
+			} else {
+				toReturn[i] = ob[i];
+			}
+		}
+		return toReturn;
+	};
+	
+	jPw.param = function(obj, name) {
+		var str = '';
+
+		var addStr = function(nxtStr) {
+			if (str != '') {
+				str += '&';
+			};
+			str += nxtStr; 
+		};
+
+		if (Array.isArray(obj)) {
+			jPw.each(obj, function(idx, val) {
+				addStr( name+'['+idx+']=' + val );
+			});
+		} else {
+			for (var key in obj) {
+				if ((obj[key] instanceof Object)) {
+					addStr( jPw.param(obj[key], key) );	
+				} else {
+					addStr( key + '=' + obj[key] );
+				};
+			};
+		};
+		
+		return str;
+	};
+	
+}( this.jPw = this.jPw || {}));
+
+(function(jPw, undefined) {
+	jPw.pageArr = function(total, by) {
+		var cur = 0;
+		var arr = [];
+		while(cur < total) {
+			arr.push({from: cur, to: Math.min(total, cur+by)});
+			cur += by;
+		};
+		return arr;
+	};
+}( this.jPw = this.jPw || {}));
+
+(function(global, jPw, undefined) {
+
+	jPw.execFcnByName = function(functionName, cntx /*, args */) {
+		var context = cntx || global;
+	    var args = Array.prototype.slice.call(arguments, 2);
+	    var namespaces = functionName.split(".");
+	    var func = namespaces.pop();
+	    for (var i = 0; i < namespaces.length; i++) {
+	        context = context[namespaces[i]];
+	    }
+	    return context[func].apply(context, args);
+	};
+
+}(this , this.jPw = this.jPw || {}));
 

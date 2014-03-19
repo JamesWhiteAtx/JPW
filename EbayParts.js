@@ -42,6 +42,9 @@
 			.addCol(new nlobjSearchColumn('upccode'))
 			.addCol(new nlobjSearchColumn('shippackage'))
 			.addCol(new nlobjSearchColumn('weight'))
+			.addCol(new nlobjSearchColumn('custitem_ebay_listing_id'))
+			.addCol(new nlobjSearchColumn('custitem_ebay_listing_url'))
+			.addCol(new nlobjSearchColumn('custitem_ebay_candidate'))
 		;
 		
 		return search;
@@ -134,7 +137,10 @@
 					   	upccode: part.getValue('upccode'),
 					   	shippackage: part.getValue('shippackage'),
 					   	weight: part.getValue('weight'),
-					   	prodCtgry: part.getValue('custitem_prod_cat')
+					   	//prodCtgry: part.getValue('custitem_prod_cat'),
+					   	listingId: part.getValue('custitem_ebay_listing_id'),
+					   	listingUrl: part.getValue('custitem_ebay_listing_url'),
+					   	ebayCandidate: (part.getValue('custitem_ebay_candidate') == 'T'),
 					};
 				
 				assignPrice(item);

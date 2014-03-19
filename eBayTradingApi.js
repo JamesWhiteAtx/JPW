@@ -65,16 +65,12 @@ this.jPw = this.jPw || {};
 			  new nlobjSearchColumn('custrecord_ebay_cfg_trd_api_uri'),
 			  new nlobjSearchColumn('custrecord_ebay_cfg_auth_token'),
 			  new nlobjSearchColumn('custrecord_ebay_cfg_pp_email'),
-			  new nlobjSearchColumn('custrecord_ebay_cfg_lstng_file_id'),
-			  new nlobjSearchColumn('custrecord_ebay_cfg_lea_ctgry'),
-			  new nlobjSearchColumn('custrecord_ebay_cfg_htr_ctgry'),
 			  new nlobjSearchColumn('custrecord_ebay_cfg_1row_price'),
 			  new nlobjSearchColumn('custrecord_ebay_cfg_2row_price'),
 			  new nlobjSearchColumn('custrecord_ebay_cfg_3row_price'),
-			  new nlobjSearchColumn('custrecord_ebay_cfg_htr_price'),
-			  new nlobjSearchColumn('custrecord_ebay_cfg_lea_img1'),
-			  new nlobjSearchColumn('custrecord_ebay_cfg_title'),
-			  new nlobjSearchColumn('custrecord_ebay_cfg_descr'),
+			  new nlobjSearchColumn('custrecord_ebay_cfg_1row_retail'),
+			  new nlobjSearchColumn('custrecord_ebay_cfg_2row_retail'),
+			  new nlobjSearchColumn('custrecord_ebay_cfg_3row_retail'),		  
 			]);
 		
 		if ((!results) || (results.length < 1)) {
@@ -98,16 +94,12 @@ this.jPw = this.jPw || {};
 			trdHeaders: trdHeaders,
 			authToken: cfgRecord.getValue('custrecord_ebay_cfg_auth_token'),
 			ppEmail: cfgRecord.getValue('custrecord_ebay_cfg_pp_email'),
-			lstngFileId: cfgRecord.getValue('custrecord_ebay_cfg_lstng_file_id'),
-			leaCtgry: cfgRecord.getValue('custrecord_ebay_cfg_lea_ctgry'),
-			htrCtgry: cfgRecord.getValue('custrecord_ebay_cfg_htr_ctgry'),
 			price1Row: cfgRecord.getValue('custrecord_ebay_cfg_1row_price'),
 			price2Row: cfgRecord.getValue('custrecord_ebay_cfg_2row_price'),
 			price3Row: cfgRecord.getValue('custrecord_ebay_cfg_3row_price'),
-			htrPrice: cfgRecord.getValue('custrecord_ebay_cfg_htr_price'),
-			leaImg1Id: cfgRecord.getValue('custrecord_ebay_cfg_lea_img1'),
-			ovrdTitle: cfgRecord.getValue('custrecord_ebay_cfg_title'),
-			ovrdDescr: cfgRecord.getValue('custrecord_ebay_cfg_descr'),
+			retail1Row: cfgRecord.getValue('custrecord_ebay_cfg_1row_retail'),
+			retail2Row: cfgRecord.getValue('custrecord_ebay_cfg_2row_retail'),
+			retail3Row: cfgRecord.getValue('custrecord_ebay_cfg_3row_retail'),		  
 		};
 	};
 		
@@ -118,16 +110,12 @@ this.jPw = this.jPw || {};
 			headers: cfg.trdHeaders,
 			authToken: cfg.authToken,
 			payPalEmail: cfg.ppEmail,
-			lstngFileId: cfg.lstngFileId,
-			leaCtgry: cfg.leaCtgry,
-			htrCtgry: cfg.htrCtgry,
 			price1Row: cfg.price1Row,
 			price2Row: cfg.price2Row,
 			price3Row: cfg.price3Row,
-			htrPrice: cfg.htrPrice,
-			leaImg1Id: cfg.leaImg1Id,
-			ovrdTitle: cfg.ovrdTitle,
-			ovrdDescr: cfg.ovrdDescr,
+			retail1Row: cfg.retail1Row,
+			retail2Row: cfg.retail2Row,
+			retail3Row: cfg.retail3Row,
 		};
 		return environment;
 	};
@@ -150,7 +138,7 @@ this.jPw = this.jPw || {};
 		};
 
 		obj.setRequestProp = function(prop, propVal) {
-			obj.request[requestProp][prop] = propVal;
+			obj.request[requestProp][prop] = jPw.encodeXml( propVal );
 		    return obj.request[requestProp][prop];
 		};
 		
@@ -405,7 +393,7 @@ this.jPw = this.jPw || {};
 		
 		obj.setItemProp = function(prop, propVal) {
 			var item = obj.getItem();
-			item[prop] = propVal;
+			item[prop] = jPw.encodeXml( propVal );
 		    return item[prop];
 		};
 
@@ -432,6 +420,11 @@ this.jPw = this.jPw || {};
 			return obj;
 		};
 
+		obj.setRetailPrice = function(price) {
+			obj.setItemProp('DiscountPriceInfo', {OriginalRetailPrice: price} );
+			return obj;
+		};
+		
 		obj.calcLeaStartPrice = function(rows, defaultPrice) {
 			var rowPrice;
 			var env = obj.getEnvironment();
@@ -446,13 +439,33 @@ this.jPw = this.jPw || {};
 			return obj;
 		};
 
+		obj.calcLeaRetailPrice = function(rows, defaultPrice) {
+			var rowPrice;
+			var env = obj.getEnvironment();
+			if (rows == 1) 		{rowPrice = env.retail1Row;}
+			else if (rows == 2) {rowPrice = env.retail2Row;}
+			else if (rows == 3) {rowPrice = env.retail3Row;}
+			else 				{rowPrice = env.retail2Row;};
+			
+			var price = rowPrice || defaultPrice;
+			
+			obj.setRetailPrice(price);
+			return obj;
+		};
+		/* jpwxx 
 		obj.calcHeaterStartPrice = function(defaultPrice) {
 			var env = obj.getEnvironment();
 			var price = env.htrPrice || defaultPrice;
 			obj.setStartPrice(price);
 			return obj;
 		};
-		
+		obj.calcHeaterRetailPrice = function(defaultPrice) {
+			var env = obj.getEnvironment();
+			var price = env.htrPrice || defaultPrice;
+			obj.setRetailPrice(price);
+			return obj;
+		};
+		*/
 		obj.setStoreCategoryID = function(ctgy) {
 			obj.getItemProp('Storefront').StoreCategoryID = ctgy;
 			return obj;
@@ -522,6 +535,7 @@ this.jPw = this.jPw || {};
 	      "Country": "US",
 	      "Currency": "USD",
 	      "Description": '',
+	      "DiscountPriceInfo": '',
 	      "HitCounter": "HiddenStyle",
 	      "ListingDuration": "GTC",
 	      "ListingType": "FixedPriceItem",
@@ -529,6 +543,7 @@ this.jPw = this.jPw || {};
 	      "PaymentMethods": "PayPal",
 	      "PayPalEmailAddress": '',
 	      "PrimaryCategory": { "CategoryID": '' },
+	      "SecondaryCategory": { "CategoryID": '' },
 	      "PrivateListing": "false",
 	      "Quantity": '',
 	      "PrivateNotes": '',
@@ -606,39 +621,11 @@ this.jPw = this.jPw || {};
 		return obj;
 	};
 	
-	apiet.makeLeatherItemRequest = function (env) {
+	apiet.makeRwNewItemRequest = function (env) {
 		var obj = apiet.makeAddFixedPriceItemRequest(env);
-		
-		var seatCovCtgry = '33702'; // seat covers
-		var env = obj.getEnvironment();
-		var ctgry = env.leaCtgry || seatCovCtgry;           // = '30120' ; //'14112'; //Everything Else > Test Auctions > eBay Use Only
-		obj.setItemProp('PrimaryCategory', { 'CategoryID': ctgry });
-		
-		if (ctgry != '30120') {  					// this was just in here for eBay testing
-			obj.setItemProp('ConditionID', '1000'); // Condition does not work with  Everything Else > Test Auctions > eBay Use Only	
-		};
-
-		//obj.setItemProp('SecondaryCategory', { "CategoryID": "???" });
-		
+		obj.setItemProp('ConditionID', '1000'); // Condition does not work with  Everything Else > Test Auctions > eBay Use Only	
 		obj.addItemSpecific("Warranty","Yes");
 		obj.addItemSpecific("Brand","Roadwire");
-
-		return obj;
-	};
-	
-	apiet.makeHeaterItemRequest = function (env) {
-		var obj = apiet.makeAddFixedPriceItemRequest(env);
-
-		var heatPartCtgry = '33548'; 	//Parts & Accessories > Car & Truck Parts > Air Conditioning & Heat > Heater Parts
-		var env = obj.getEnvironment();
-		var ctgry = env.htrCtgry || heatPartCtgry;
-
-		obj.setItemProp('PrimaryCategory', { 'CategoryID': ctgry });	
-		obj.setItemProp('ConditionID', '1000');
-		
-		obj.addItemSpecific("Warranty","Yes");
-		obj.addItemSpecific("Brand","Roadwire");
-		
 		return obj;
 	};
 	

@@ -120,6 +120,33 @@
 			return search;
 		};
 		
+		search.totalCount = function(by) {
+			var resultSet = search.runSearch();
+			var chunk = by || 1000;
+			
+			var start = 0;
+			var end = start + chunk;
+			
+			var resCnt;
+			var count = 0;
+			var curCols = search.cols;
+			try {
+				search.cols = [];
+				var results;
+				do {
+					results = resultSet.getResults(start, end);
+					resCnt = results ? results.length : 0; 
+					count += resCnt; 
+					start += chunk;
+					end = start + chunk;
+				} while ((results) && (results.length > 0) && (resCnt == chunk));
+			} finally {
+				search.cols = curCols;	
+			};
+			
+			return count; 
+		};
+		
 		return search;
 	};
 
@@ -495,4 +522,55 @@
 		}
 		nlapiLogExecution('ERROR', type, details );
 	};
+}( this.jPw = this.jPw || {} ));
+
+
+(function(jPw, undefined) {
+	
+	jPw.itemParmName = 'itemid';
+	jPw.itemFldName = jPw.itemParmName;
+	/*
+	 * jPw.getFormPickNsItem
+	 * eBay API call to invoke NetSuite form to allow user to enter Item then submit   
+	 */
+	jPw.getFormPickNsItem = function(parmObj) {
+		var formTitle = parmObj.title || 'NetSuite Item Lookup';
+		var itemCaption = parmObj.caption || 'NetSuite Item';
+		var ItemFldName = parmObj.name || jPw.itemFldName;
+	    
+		// create the form
+	    var form = nlapiCreateForm(formTitle);
+	    
+	    // add fields to the form
+	    var itmFld = form.addField(ItemFldName, 'select', itemCaption, 'item');
+	    itmFld.setMandatory(true);
+	    itmFld.setLayoutType('normal','startcol');
+	    
+	    form.addSubmitButton('Submit');
+	    
+	    return form;
+	};
+	
+	/*
+	 * jPw.itemRespFormLkp
+	 * eBay API call to lookup item then display NetSuite Item and associated eBay Listing information   
+	 */
+	jPw.itemRespFormLkp = function(response, title, caption, name) {
+	    response.writePage( jPw.getFormPickNsItem({title: title, caption: caption, name: name}) );
+	};
+
+	/*jPw.itemSuiteletFormLkp = function(request, response){
+		var parmObj = {};
+		parmObj.title = context.getSetting('SCRIPT', 'custscript_itm_lkp_title');
+		parmObj.caption = context.getSetting('SCRIPT', 'custscript_itm_lkp_caption');
+		parmObj.name = context.getSetting('SCRIPT', 'custscript_itm_lkp_name');
+		
+		if ( request.getMethod() == 'GET' )  {
+			response.writePage( jPw.getFormPickNsItem(parmObj) );
+		} else if ( request.getMethod() == 'POST' ) {
+			parmObj.fcn = context.getSetting('SCRIPT', 'custscript_itm_lkp_fcn');
+			jPw.execFcnByName(parmObj.fcn);
+		};
+	};*/
+	
 }( this.jPw = this.jPw || {} ));
