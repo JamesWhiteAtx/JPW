@@ -45,6 +45,7 @@
 			.addCol(new nlobjSearchColumn('custitem_ebay_listing_id'))
 			.addCol(new nlobjSearchColumn('custitem_ebay_listing_url'))
 			.addCol(new nlobjSearchColumn('custitem_ebay_candidate'))
+			.addCol(new nlobjSearchColumn('custitem_ebay_title'))
 		;
 		
 		return search;
@@ -111,12 +112,15 @@
 						item_id: part.getId(),
 				    	base_part: part.basePartNo,
 				    	ns_part: part.nameNoHier(),
+				    	pattern_id: part.getValue('custitem_leather_pattern'),
 				    	pattern: part.getText('custitem_leather_pattern'),
 				    	descr: part.getValue('salesdescription'),
 				    	slctr_descr: part.getValue('custitem_selector_descr'),
 				    	store_descr: part.getValue('storedescription'),
 				    	category: part.getText('custitem_prod_cat'),
+				    	category_id: part.getValue('custitem_prod_cat'),
 				    	sub_category: part.getText('custitem_prod_sub_cat'),
+				    	sub_category_id: part.getValue('custitem_prod_sub_cat'),
 				    	color: part.getText('custitem_leather_color'),
 						color_hex: '',
 						color_url: '',
@@ -137,10 +141,10 @@
 					   	upccode: part.getValue('upccode'),
 					   	shippackage: part.getValue('shippackage'),
 					   	weight: part.getValue('weight'),
-					   	//prodCtgry: part.getValue('custitem_prod_cat'),
 					   	listingId: part.getValue('custitem_ebay_listing_id'),
 					   	listingUrl: part.getValue('custitem_ebay_listing_url'),
 					   	ebayCandidate: (part.getValue('custitem_ebay_candidate') == 'T'),
+					   	ebay_title: part.getValue('custitem_ebay_title'),
 					};
 				
 				assignPrice(item);
@@ -150,8 +154,8 @@
 				assignColSwatch(part.getValue('custrecord_swatch', 'custitem_3t_insert_clr2'), item, "insert2_hex", "insert2_url");
 
 				//assignStoreUrlId(item, part);
-				if (!excludeCars) {
-					var carVals = part.getValue('custrecord_car_type', 'CUSTITEM_LEATHER_PATTERN');
+				if ((!excludeCars) && (item.pattern_id)) {
+					/*var carVals = part.getValue('custrecord_car_type', 'CUSTITEM_LEATHER_PATTERN');
 					var carsResSet = null;
 					if (carVals) {
 						var carIds = carVals.split(",");
@@ -165,13 +169,12 @@
 							;
 						carsResSet = carSrch.runSearch();
 					};
-					
 					if (carsResSet) {
 						var cars = [];
 						jPw.loopResSet(carsResSet,
 							function(car) {
 								var years = car.getText('custrecord_year').split(",");
-								jPw.each(years, function(idx, year) {
+								jPw.each(years.sort(function(a,b){return b-a;}), function(idx, year) {
 									cars.push({
 										make: car.getText('custrecord_make'),
 										year: year,
@@ -185,7 +188,47 @@
 						if (cars.length > 0) {
 							item.cars = cars;
 						};
+					};*/
+					
+					var ptrnSrch = nlapiCreateSearch('customrecord_leather_pattern', 
+							[
+							 	new nlobjSearchFilter('internalid', null, 'is', item.pattern_id)
+							], [
+								new nlobjSearchColumn('name'),
+								new nlobjSearchColumn('custrecord_pattern_desc'),
+								new nlobjSearchColumn('custrecord_seat_config'),
+								new nlobjSearchColumn('custrecord_make','custrecord_car_type'),
+								new nlobjSearchColumn('custrecord_model','custrecord_car_type'),
+								new nlobjSearchColumn('custrecord_body','custrecord_car_type'),
+								new nlobjSearchColumn('custrecord_year','custrecord_car_type'),
+								new nlobjSearchColumn('custrecord_tl','custrecord_car_type'),
+							]);
+
+					var ptrnCarResSet = ptrnSrch.runSearch();					
+							
+					if (ptrnCarResSet) {
+						var cars = [];
+						jPw.loopResSet(ptrnCarResSet,
+							function(car) {
+								var years = car.getText('custrecord_year','custrecord_car_type').split(",");
+								jPw.each(years, function(idx, year) {
+									cars.push({
+										make: car.getText('custrecord_make','custrecord_car_type'),
+										year: year,
+										model: car.getText('custrecord_model','custrecord_car_type'),
+										body: car.getText('custrecord_body','custrecord_car_type'),
+										body_cd: car.getValue('custrecord_body','custrecord_car_type'),
+										trim: car.getText('custrecord_tl','custrecord_car_type'),
+										config: car.getText('custrecord_seat_config')
+									});
+								});
+							}
+						);
+						if (cars.length > 0) {
+							item.cars = cars.sort( jPw.dynamicSortMultiple("-year", "make", "model") );
+						};
 					};
+					
 				};				
 				
 				list.push(item);
