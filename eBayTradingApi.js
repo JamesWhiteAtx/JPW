@@ -590,7 +590,7 @@ this.jPw = this.jPw || {};
               "SubTitle": '',
               "Title": '',
               "SKU": '',
-              "PostalCode": "75019",
+              "PostalCode": "78759",
               "DispatchTimeMax": "5",
               "ReturnPolicy": {
                 "RefundOption": "MoneyBack",

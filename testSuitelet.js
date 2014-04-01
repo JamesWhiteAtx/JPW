@@ -4,7 +4,76 @@
  */
 
 var test = function (request, response) {
-	jPw.jsonResponse( request, response, {items: items} );
+	var internalid = 233188; 
+	var part;
+	part = jPw.ebay.getNsPart(internalid, {cars: false, config: true, images: true});
+	//jPw.jsonResponse( request, response, {part: part} );
+	//return;
+
+	var ids = [];
+	var urls = [];
+	
+	jPw.each(part.lstgCfg.images, function() {
+		var img = this;
+		if (img.id) {
+			ids.push(img.id);
+		} else if ((img.store) && (part.img_id)) {
+			img.id = part.img_id;
+			ids.push(img.id);
+		} else if ((img.thumb) && (part.thumb_id)) {
+			img.id = part.thumb_id;
+			ids.push(img.id);
+		} else if (img.url) {
+			urls.push(img.url);
+		};
+	});
+
+	var filters = [];
+	if (ids.length > 0) {
+		filters.push(['custrecord_ebay_img_ns_img_id', 'anyof', ids]);
+	};
+	
+	jPw.each(urls, function() {
+		if (ids.length > 0) {
+			filters.push('or');
+		};
+		filters.push(['custrecord_ebay_img_ext_url', 'is', this]);
+	});
+
+	var results
+	if (filters) {
+		results = nlapiSearchRecord('customrecord_ebay_image', null, filters, 
+	            [new nlobjSearchColumn('custrecord_ebay_img_ns_img_id'),
+	             new nlobjSearchColumn('custrecord_ebay_img_ext_url'),
+	             new nlobjSearchColumn('custrecord_ebay_img_fullurl')]);
+	};
+
+	var assignEbUrl = function(img) {
+		var matched = false;
+		if (results) {
+			jPw.each(results, function() {
+				if ((img.id == this.getValue('custrecord_ebay_img_ns_img_id')) 
+						|| (img.url == this.getValue('custrecord_ebay_img_ext_url'))) 
+				{
+					img.ebayUrl = this.getValue('custrecord_ebay_img_fullurl');
+					matched = true;
+				};
+			});
+		};
+		return matched;
+	};
+	
+	jPw.each(part.lstgCfg.images, function() {
+		var img = this;
+		if (!assignEbUrl(img)) {
+			if ((img.id) && (!img.url)) {
+				var imgFile = nlapiLoadFile(img.id);
+				img.ebayUrl = jPw.ebay.addUpdEbayImage(img.id, imgFile, true);
+			};
+		};
+	});
+	
+	jPw.jsonResponse( request, response, {count: part.lstgCfg.images.length, images: part.lstgCfg.images} );
 };
 /*	var ptrnLastCar = function(ptrnId) {
 

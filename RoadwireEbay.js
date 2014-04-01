@@ -107,7 +107,7 @@ function suitelet(request, response){
 		 var makeCfg = function() {
 			 var cfg = {};
 
-			 cfg.makeImg = function(rawImg) {
+			 cfg.makeImg = function(rawImg) { // {order, id, url, store, thumb}
 				 if (rawImg.id) {
 					 return {order: rawImg.order || 999, id: rawImg.id};
 				 } else if (rawImg.url) {
@@ -115,7 +115,7 @@ function suitelet(request, response){
 				 } else if (rawImg.store) {
 					 return {order: rawImg.order || 999, store: rawImg.store};
 				 } else if (rawImg.thumb) {
-					 return {order: rawImg.order || 999, store: rawImg.thumb};
+					 return {order: rawImg.order || 999, thumb: rawImg.thumb};
 				 };
 			 };
 			 
@@ -149,6 +149,14 @@ function suitelet(request, response){
 					 cfg.addImg(newImg);
 				 };
 				 
+			 };
+			 
+			 cfg.sortImages = function() {
+				if (cfg.images) {
+					cfg.images.sort(function(a,b){
+						return a.order > b.order;
+					});
+				};
 			 };
 			 
 			 cfg.mergeCfg = function(newCfg) {
@@ -185,7 +193,6 @@ function suitelet(request, response){
 
 				 };
 			 };
-
 
 			 cfg.loadImgs = function() {
 				 cfg.images = cfg.images || [];
@@ -331,11 +338,7 @@ function suitelet(request, response){
 				 cfg.mergeCfg(getItemCfg(itemId));
 			 };
 			 
-			 if (cfg.images) {
-				 cfg.images.sort(function(a,b){
-					 return a.order > b.order;
-				 });
-			 };
+			 cfg.sortImages();
 
 			 return cfg;
 		 };              
@@ -1619,119 +1622,130 @@ function suitelet(request, response){
  */
 (function(ebay) {
         
-        var resolveHttpImgIdUrl = function(file, imgId) {
-                
-                var requestUrl = function(url) {
-                        try {
-                                var resp = nlapiRequestURL( url );
-                                var code = resp.getCode();
-                                var err = resp.getError();
-                                if (err) {
-                                        return false;
-                                } else if (code == 200) {
-                                        return true;
-                                } else {
-                                        return false;
-                                };
-                        } catch (e) {
-                                return false;
-                        };
-                };
-                
-                var fileUrl = file.getURL();
+	var resolveHttpImgFileUrl = function(file, imgId) {
 
-                var nsUrl = 'http://shopping.netsuite.com' + fileUrl;
-                if (requestUrl(nsUrl)) {
-                        return nsUrl;
-                } else  {
-                        var bizUrl = 'http://roadwire.biz/netsuitefile/' + imgId;
-                        if (requestUrl(bizUrl)) {
-                                return bizUrl;
-                        };
-                };
-                return false;
-        };
-        
-        ebay.addUpdEbayImage = function(imgId, imgFile){
-                var file;
-                if (imgFile) {
-                        file = imgFile;
-                        imgId = file.getId();
-                } else {
-                        file = nlapiLoadFile(imgId);
-                };
-                
-                if (!file) {
-                        var msg = 'Failed to find image file for id "'+imgId+'".';
-                        nlapiLogExecution('ERROR', msg);
-                        throw nlapiCreateError('FILE_ID_MISSING', msg);
-                        return;
-                };
-                
-                var results = nlapiSearchRecord('customrecord_ebay_image', null, 
-                                [ new nlobjSearchFilter('custrecord_ebay_img_ns_img_id', null, 'is', imgId)], 
-                                [ new nlobjSearchColumn('custrecord_ebay_img_fullurl')]);
-                
-                var imgResult;
-                if ((results) && (results.length > 0)) {
-                        imgResult = results[0];
-                        return imgResult.getValue('custrecord_ebay_img_fullurl');
-                };
-                
-                var api = jPw.apiet.makeUploadSiteHostedPicturesRequest(); 
-                
-                var pictUrl = resolveHttpImgIdUrl(file, imgId);
-                if (!pictUrl) {
-                        var msg = 'Failed to resolve image url for id "'+imgId+'".';
-                        nlapiLogExecution('ERROR', msg);
-                        throw nlapiCreateError('FILE_URL_FAILED', msg);
-                        return;
-                };
-                api.setExternalPictureURL( pictUrl );
-                //api.setExternalPictureURL('http://roadwire.biz/netsuitefile/' + imgId);
-                
-                api.setPictureName(file.getName());
-                
-                //JPW
-                //response.setContentType('XMLDOC');
-                //response.write( api.getXmlEncode() );
-                //return;
-                
-                var retUrl;
-                api.callApiCallback( 
-                        function(obj){
-                                var fullUrl = obj.getRespAnyVal('FullURL');
-                                var pictureName = obj.getRespAnyVal('PictureName');
-                                var pictureSet = obj.getRespAnyVal('PictureSet');
-                                var pictureFormat = obj.getRespAnyVal('PictureFormat');
-                                
-                                var ebImgRec
-                                if (imgResult) {
-                                        ebImgRec = nlapiLoadRecord(imgResult.getRecordType(), imgResult.getId());
-                                } else {
-                                        ebImgRec = nlapiCreateRecord('customrecord_ebay_image');
-                                        ebImgRec.setFieldValue('custrecord_ebay_img_ns_img_id', imgId);         
-                                };
-                                
-                                ebImgRec.setFieldValue('name', pictureName);
-                                ebImgRec.setFieldValue('custrecord_ebay_img_fullurl', fullUrl);
-                                ebImgRec.setFieldValue('custrecord_ebay_img_pictfrmt', pictureFormat);
-                                ebImgRec.setFieldValue('custrecord_ebay_img_pictset', pictureSet);
-                                
-                                var id = nlapiSubmitRecord(ebImgRec, true);
-                                
-                                retUrl = fullUrl;
-                        }, 
-                        function(obj){ 
-                                var msg = obj.respXmlStr;
-                                nlapiLogExecution('ERROR', msg);
-                                throw nlapiCreateError('API_ERROR_RESPONSE', msg);
-                                return;
-                        }
-                );      
-                
-                return retUrl;
-        };
+		var requestUrl = function(url) {
+			try {
+				var resp = nlapiRequestURL( url );
+				var code = resp.getCode();
+				var err = resp.getError();
+				if (err) {
+					return false;
+				} else if (code == 200) {
+					return true;
+				} else {
+					return false;
+				};
+			} catch (e) {
+				return false;
+			};
+		};
+
+		var fileUrl = file.getURL();
+		if (!imgId) {
+			imgId = file.getId();
+		};
+
+		var nsUrl = 'http://shopping.netsuite.com' + fileUrl;
+		if (requestUrl(nsUrl)) {
+			return nsUrl;
+		} else  {
+			var bizUrl = 'http://roadwire.biz/netsuitefile/' + imgId;
+			if (requestUrl(bizUrl)) {
+				return bizUrl;
+			};
+		};
+		return false;
+	};
+
+	/*ebay.resolveHttpImgIdUrl = function(imgId) {
+		var file = nlapiLoadFile(imgId);
+		return resolveHttpImgFileUrl(file, imgId);
+	};*/
+	
+	ebay.addUpdEbayImage = function(imgId, imgFile, skipLookup) {
+		var file;
+		if (imgFile) {
+			file = imgFile;
+			imgId = file.getId();
+		} else {
+			file = nlapiLoadFile(imgId);
+		};
+
+		if (!file) {
+			var msg = 'Failed to find image file for id "'+imgId+'".';
+			nlapiLogExecution('ERROR', msg);
+			throw nlapiCreateError('FILE_ID_MISSING', msg);
+			return;
+		};
+
+		var results;
+		if (!skipLookup) {
+			results = nlapiSearchRecord('customrecord_ebay_image', null, 
+					[ new nlobjSearchFilter('custrecord_ebay_img_ns_img_id', null, 'is', imgId)], 
+					[ new nlobjSearchColumn('custrecord_ebay_img_fullurl')]);
+		};
+
+		var imgResult;
+		if ((results) && (results.length > 0)) {
+			imgResult = results[0];
+			return imgResult.getValue('custrecord_ebay_img_fullurl');
+		};
+
+		var api = jPw.apiet.makeUploadSiteHostedPicturesRequest(); 
+
+		var pictUrl = resolveHttpImgFileUrl(file, imgId);
+		if (!pictUrl) {
+			var msg = 'Failed to resolve image url for id "'+imgId+'".';
+			nlapiLogExecution('ERROR', msg);
+			throw nlapiCreateError('FILE_URL_FAILED', msg);
+			return;
+		};
+		api.setExternalPictureURL( pictUrl );
+		//api.setExternalPictureURL('http://roadwire.biz/netsuitefile/' + imgId);
+
+		api.setPictureName(file.getName());
+
+		//JPW
+		//response.setContentType('XMLDOC');
+		//response.write( api.getXmlEncode() );
+		//return;
+
+		var retUrl;
+		api.callApiCallback( 
+				function(obj){
+					var fullUrl = obj.getRespAnyVal('FullURL');
+					var pictureName = obj.getRespAnyVal('PictureName');
+					var pictureSet = obj.getRespAnyVal('PictureSet');
+					var pictureFormat = obj.getRespAnyVal('PictureFormat');
+
+					var ebImgRec
+					if (imgResult) {
+						ebImgRec = nlapiLoadRecord(imgResult.getRecordType(), imgResult.getId());
+					} else {
+						ebImgRec = nlapiCreateRecord('customrecord_ebay_image');
+						ebImgRec.setFieldValue('custrecord_ebay_img_ns_img_id', imgId);         
+					};
+
+					ebImgRec.setFieldValue('name', pictureName);
+					ebImgRec.setFieldValue('custrecord_ebay_img_fullurl', fullUrl);
+					ebImgRec.setFieldValue('custrecord_ebay_img_pictfrmt', pictureFormat);
+					ebImgRec.setFieldValue('custrecord_ebay_img_pictset', pictureSet);
+
+					var id = nlapiSubmitRecord(ebImgRec, true);
+
+					retUrl = fullUrl;
+				}, 
+				function(obj){ 
+					var msg = obj.respXmlStr;
+					nlapiLogExecution('ERROR', msg);
+					throw nlapiCreateError('API_ERROR_RESPONSE', msg);
+					return;
+				}
+		);      
+
+		return retUrl;
+	};
 }( this.jPw.ebay = this.jPw.ebay || {}));
 
 /*
@@ -1773,43 +1787,60 @@ function suitelet(request, response){
 			var parts = jPw.parts.eBayPartsList(search, (!options.cars), 1);
 
 			if ((parts) && (parts.length > 0)) {
+			
 				var part = parts[0];
 
-				part.lstgCfg = ebay.lstgCfgs().calcCfg(part.category_id, part.sub_category_id, null, part.item_id);
-				
-				if (options.images) {
-					part.lstgCfg.mergeImg({});
-					/*var part= {item_id:233188, pattern_id:2930};
+				if (options.config) {
+					part.lstgCfg = ebay.lstgCfgs().calcCfg(part.category_id, part.sub_category_id, null, part.item_id);
 
-var rp = nlapiSearchRecord('customrecord_ptrn_media', null, 
-[
-['custrecord_ptrnmedia_ptrn', 'is', part.pattern_id],
-'and',
-['custrecord_ptrnmedia_ebayimg', 'is', 'T'],
-],
-[
-new nlobjSearchColumn('custrecord_ptrnmedia_img'),
-new nlobjSearchColumn('custrecord_ptrnmedia_imgurl'),
-new nlobjSearchColumn('custrecord_ptrnmedia_ebayord'),
-]
-);
-
-var ri = nlapiSearchRecord('customrecord_item_media', null, 
-[
-['custrecord_itmmedia_itm', 'is', part.item_id],
-'and',
-['custrecord_itmmedia_ebayimg', 'is', 'T'],
-],
-[
-new nlobjSearchColumn('custrecord_itmmedia_img'),
-new nlobjSearchColumn('custrecord_itmmedia_imgurl'),
-new nlobjSearchColumn('custrecord_itmmedia_ebayord'),
-]
-)*/
-				};
-				
-				
+					if (part.lstgCfg && (options.images)) {
+						// retrieve and merger pattern level ebay images
+						
+						if (part.pattern_id) {
+							var ptrnResults = nlapiSearchRecord('customrecord_ptrn_media', null, 
+									[['custrecord_ptrnmedia_ptrn', 'is', part.pattern_id],
+									 'and',
+									 ['custrecord_ptrnmedia_ebayimg', 'is', 'T']],
+									[new nlobjSearchColumn('custrecord_ptrnmedia_img'),
+									 new nlobjSearchColumn('custrecord_ptrnmedia_imgurl'),
+									 new nlobjSearchColumn('custrecord_ptrnmedia_ebayord')]);
+			                
+			                jPw.each(ptrnResults, function() {
+								part.lstgCfg.mergeImg({
+									order: this.getValue('custrecord_ptrnmedia_ebayord'),
+									id: this.getValue('custrecord_ptrnmedia_img'),
+									url: this.getValue('custrecord_ptrnmedia_imgurl')
+								});
+							});
+						};
+						// retrieve and merger item level ebay images
+						if (part.item_id) {
+							var itmResults = nlapiSearchRecord('customrecord_item_media', null, 
+									[['custrecord_itmmedia_itm', 'is', part.item_id],
+									 'and',
+									 ['custrecord_itmmedia_ebayimg', 'is', 'T']],
+									[new nlobjSearchColumn('custrecord_itmmedia_img'),
+									 new nlobjSearchColumn('custrecord_itmmedia_imgurl'),
+									 new nlobjSearchColumn('custrecord_itmmedia_ebayord')]);
+			                
+			                jPw.each(itmResults, function() {
+								part.lstgCfg.mergeImg({
+									order: this.getValue('custrecord_itmmedia_ebayord'),
+									id: this.getValue('custrecord_itmmedia_img'),
+									url: this.getValue('custrecord_itmmedia_imgurl')
+								});
+							});
+						};
+						
+						part.lstgCfg.sortImages();
+					};
+					
+				}; //if (options.config) 
 			};
+		};
+		
+		if (!part) {
+			return;
 		};
 		
 		part.makeLeaTitle = function() {
@@ -1956,18 +1987,85 @@ new nlobjSearchColumn('custrecord_itmmedia_ebayord'),
 	};
 
 	ebay.updatePartImgs = function (part) {
-		part.ebay_img_url = ebay.addUpdEbayImage(part.img_id);
-		part.ebay_thumb_url = ebay.addUpdEbayImage(part.thumb_id);
+		//part.ebay_img_url = ebay.addUpdEbayImage(part.img_id);	part.ebay_thumb_url = ebay.addUpdEbayImage(part.thumb_id);
+		var ids = [];
+		var urls = [];
+		
+		jPw.each(part.lstgCfg.images, function() {
+			var img = this;
+			if (img.id) {
+				ids.push(img.id);
+			} else if ((img.store) && (part.img_id)) {
+				img.id = part.img_id;
+				ids.push(img.id);
+			} else if ((img.thumb) && (part.thumb_id)) {
+				img.id = part.thumb_id;
+				ids.push(img.id);
+			} else if (img.url) {
+				urls.push(img.url);
+			};
+		});
+
+		var filters = [];
+		if (ids.length > 0) {
+			filters.push(['custrecord_ebay_img_ns_img_id', 'anyof', ids]);
+		};
+		
+		jPw.each(urls, function() {
+			if (ids.length > 0) {
+				filters.push('or');
+			};
+			filters.push(['custrecord_ebay_img_ext_url', 'is', this]);
+		});
+
+		var results;
+		if (filters) {
+			results = nlapiSearchRecord('customrecord_ebay_image', null, filters, 
+		            [new nlobjSearchColumn('custrecord_ebay_img_ns_img_id'),
+		             new nlobjSearchColumn('custrecord_ebay_img_ext_url'),
+		             new nlobjSearchColumn('custrecord_ebay_img_fullurl')]);
+		};
+
+		var assignEbUrl = function(img) {
+			var matched = false;
+			if (results) {
+				jPw.each(results, function() {
+					if ((img.id == this.getValue('custrecord_ebay_img_ns_img_id')) 
+							|| (img.url == this.getValue('custrecord_ebay_img_ext_url'))) 
+					{
+						img.ebayUrl = this.getValue('custrecord_ebay_img_fullurl');
+						matched = true;
+					};
+				});
+			};
+			return matched;
+		};
+		
+		jPw.each(part.lstgCfg.images, function() {
+			var img = this;
+			if (!assignEbUrl(img)) {
+				if ((img.id) && (!img.url)) {
+					var imgFile = nlapiLoadFile(img.id);
+					img.ebayUrl = ebay.addUpdEbayImage(img.id, imgFile, true);
+				};
+			};
+		});		
 	};
 
 	ebay.loadPartImgsToApi = function (part, api) {
 		//PictureDetails
-		if (part.img_id) {
+		jPw.each(part.lstgCfg.images, function() {
+			var img = this;
+			if (img.ebayUrl) {
+				api.addPictureURL(img.ebayUrl);
+			};
+		});		
+		/*if (part.img_id) {
 			api.addPictureURL(part.ebay_img_url);
 		};
 		if (part.thumb_id) {
 			api.addPictureURL(part.ebay_thumb_url);
-		};
+		};*/
 	};
 
 	ebay.loadReqImgs = function(part, api) {
@@ -2058,7 +2156,7 @@ new nlobjSearchColumn('custrecord_itmmedia_ebayord'),
 		jPw.ebay.apiXmlInErr = null;
 		jPw.ebay.apiXmErrResp = null;
 
-		var part =  ebay.getNsPart(internalid);
+		var part =  ebay.getNsPart(internalid, {cars: true, images: true, config: true});
 		if (!part) {
 			var msg = 'No Item was found for internalid '+internalid+'.';
 			throw nlapiCreateError('PARAM_ERROR', msg);
@@ -2185,7 +2283,7 @@ new nlobjSearchColumn('custrecord_itmmedia_ebayord'),
 	};      
 
 	ebay.eBayUpdListing = function(parm) {
-		var part = jPw.ebay.getNsPart(parm.internalid);
+		var part = jPw.ebay.getNsPart(parm.internalid, {config: true, images: parm.imgs});
 
 		var ebayItemId = part.listingId;
 
@@ -2517,6 +2615,40 @@ new nlobjSearchColumn('custrecord_itmmedia_ebayord'),
         };
 }( this.jPw.ebay = this.jPw.ebay || {}));
 
+(function(ebay) {
+	ebay.scheduleSetTitles = function(type) {
+		var context = nlapiGetContext();
+		var qty = jPw.parmQtyExecute('custscript_ebay_titles_execute', 'custscript_ebay_titles_qty', context);
+
+		var overwrite = ((context.getSetting('SCRIPT', 'custscript_ebay_titles_over') || 'F') == 'T');
+
+        var filters = [new nlobjSearchFilter('custitem_ebay_candidate', null, 'is', 'T')]; 
+        if (!overwrite) {
+        	filters.push(new nlobjSearchFilter('custitem_ebay_title', null, 'isempty', null));
+        };
+        
+        var columns = [new nlobjSearchColumn('name'), new nlobjSearchColumn('custitem_ebay_title')];
+        var search = nlapiCreateSearch('item', filters, columns);
+		
+		var resultFcn = function(item, idx, results) {
+
+			var internalid, part;
+			var title = item.getValue('custitem_ebay_title');
+			if (overwrite || (!title)) {
+				internalid = item.getId(); 
+				part = jPw.ebay.getNsPart(internalid, {cars: true});
+				if (part) {
+					title = part.ebayTitle;
+					if (title) {
+						nlapiSubmitField(item.getRecordType(), internalid, 'custitem_ebay_title', title);
+					};
+				};
+			};
+		};
+		
+		jPw.ProcessSearchReSched(search, resultFcn, qty);
+	};
+}( this.jPw.ebay = this.jPw.ebay || {}));
 /*
  * jPw.ebay.apiRespForm
  * Suitelet Form, base repsonse form
