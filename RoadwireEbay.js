@@ -557,6 +557,7 @@ function suitelet(request, response){
         ebay.ctlgFldId = 'custitem_item_prod_ctlg';
         ebay.listIdFldId = 'custitem_ebay_listing_id';
         ebay.listUrlFldId = 'custitem_ebay_listing_url';
+        ebay.listDtFldId = 'custitem_ebay_last_update';
         
         ebay.addEbayItemCtlg = function (parm) {  //{internalId, record, submit}
                 var record;
@@ -620,6 +621,7 @@ function suitelet(request, response){
                 if (record) {
                         record.setFieldValue(ebay.listIdFldId, parm.eBayItemId);
                         record.setFieldValue(ebay.listUrlFldId, parm.eBayUrl);
+                        record.setDateTimeValue(ebay.listDtFldId, nlapiDateToString(new Date(), 'datetimetz'), 'America/Los_Angeles');
 
                         var qty = parseInt(parm.avail);
                         if (isNaN(qty) || (qty > 0)) {
@@ -1353,6 +1355,7 @@ function suitelet(request, response){
                          new nlobjSearchColumn('custitem_item_prod_ctlg'),
                          new nlobjSearchColumn('custitem_ebay_listing_id'),
                          new nlobjSearchColumn('custitem_ebay_listing_url'),
+                         new nlobjSearchColumn('custitem_ebay_last_update'),
                          new nlobjSearchColumn('custitem_rows')
                         ]);
 
@@ -1504,6 +1507,7 @@ function suitelet(request, response){
                 list.addColumn('rows', 'text', 'Rows');
                 list.addColumn('ebcand', 'text', 'eBay Cand');
                 list.addColumn('nsctlg', 'text', 'NS Catalog');
+                list.addColumn('upddt', 'date', 'Last Upd');
                 list.addColumn('action', 'text', '(+)').setURL('addupd_url', true);
                 list.addColumn('details', 'text', '(?)').setURL('lstinfo_url', true);
                 list.addColumn('sku', 'text', 'eBay SKU');
@@ -1560,33 +1564,34 @@ function suitelet(request, response){
                         };
                         
                         list.addRow({
-                                partno: key,
-                                nsname: record ? record.nameNoHier() : null,
-                                item_url: record ? nsItemUrl + record.getId() + '&e=T' : null,
-                                rows: record ? record.getValue('custitem_rows') : null,
-                                ebcand: record ? record.getValue('custitem_ebay_candidate') : null,
-                                nsctlg: record ? record.getText('custitem_item_prod_ctlg') : null,
-                                action: record ? (listing ? 'update' : 'add') : null,
-                                addupd_url: record ? addUpdUrl + '&partno=' + key + '&internalid=' + record.getId() + maintParm.parmStr() : null,
-                                details: record ? 'details' : null,
-                                lstinfo_url: record ? lstInfoUrl + '&itemid=' + record.getId() + maintParm.parmStr() : null,
-                        sku: listing ? listing.sku : null,
-                        price: listing ? listing.price : null,
-                                qty: listing ? listing.qty : null,
-                                sold: listing ? listing.sold : null,
-                                avail: listing ? listing.avail: null,
+                            partno: key,
+                            nsname: record ? record.nameNoHier() : null,
+                            item_url: record ? nsItemUrl + record.getId() + '&e=T' : null,
+                            rows: record ? record.getValue('custitem_rows') : null,
+                            ebcand: record ? record.getValue('custitem_ebay_candidate') : null,
+                            nsctlg: record ? record.getText('custitem_item_prod_ctlg') : null,
+                            upddt: record ? record.getValue('custitem_ebay_last_update') : null,
+                            action: record ? (listing ? 'update' : 'add') : null,
+                            addupd_url: record ? addUpdUrl + '&partno=' + key + '&internalid=' + record.getId() + maintParm.parmStr() : null,
+                            details: record ? 'details' : null,
+                            lstinfo_url: record ? lstInfoUrl + '&itemid=' + record.getId() + maintParm.parmStr() : null,
+                            sku: listing ? listing.sku : null,
+                            price: listing ? listing.price : null,
+                            qty: listing ? listing.qty : null,
+                            sold: listing ? listing.sold : null,
+                            avail: listing ? listing.avail: null,
                             qty_url: listing ? qtyUrl + '&partno=' + listing.sku + '&ebayitemid=' + eBayItemId 
-                                        + '&qty=' + listing.qty 
-                                        + '&sold=' + listing.sold
-                                        + '&price='     + listing.price 
-                                        + maintParm.parmStr(): null,
-                        title: listing ? listing.title : null,
-                        ebayitemid: eBayItemId,
-                        listing_url: listingUrl,
-                        syncerr: syncErr,
-                        clear: clearTxt,
-                        clear_url: clearUrl
-                    });
+                                    + '&qty=' + listing.qty 
+                                    + '&sold=' + listing.sold
+                                    + '&price='     + listing.price 
+                                    + maintParm.parmStr(): null,
+                            title: listing ? listing.title : null,
+                    		ebayitemid: eBayItemId,
+                        	listing_url: listingUrl,
+                        	syncerr: syncErr,
+                        	clear: clearTxt,
+                        	clear_url: clearUrl
+                        });
                 });
                 
                 response.writePage( list );
@@ -1622,7 +1627,7 @@ function suitelet(request, response){
  */
 (function(ebay) {
         
-	var resolveHttpImgFileUrl = function(file, imgId) {
+	ebay.resolveHttpImgFileUrl = function(file, imgId) {
 
 		var requestUrl = function(url) {
 			try {
@@ -1646,7 +1651,7 @@ function suitelet(request, response){
 			imgId = file.getId();
 		};
 
-		var nsUrl = 'http://shopping.netsuite.com' + fileUrl;
+		var nsUrl = jPw.getShoppinUrlDomain() + fileUrl;
 		if (requestUrl(nsUrl)) {
 			return nsUrl;
 		} else  {
@@ -1660,10 +1665,10 @@ function suitelet(request, response){
 
 	/*ebay.resolveHttpImgIdUrl = function(imgId) {
 		var file = nlapiLoadFile(imgId);
-		return resolveHttpImgFileUrl(file, imgId);
+		return ebay.resolveHttpImgFileUrl(file, imgId);
 	};*/
 	
-	ebay.addUpdEbayImage = function(imgId, imgFile, skipLookup) {
+	ebay.addUpdEbayImage = function(imgId, imgFile) {
 		var file;
 		if (imgFile) {
 			file = imgFile;
@@ -1679,12 +1684,9 @@ function suitelet(request, response){
 			return;
 		};
 
-		var results;
-		if (!skipLookup) {
-			results = nlapiSearchRecord('customrecord_ebay_image', null, 
-					[ new nlobjSearchFilter('custrecord_ebay_img_ns_img_id', null, 'is', imgId)], 
-					[ new nlobjSearchColumn('custrecord_ebay_img_fullurl')]);
-		};
+		var	results = nlapiSearchRecord('customrecord_ebay_image', null, 
+				[ new nlobjSearchFilter('custrecord_ebay_img_ns_img_id', null, 'is', imgId)], 
+				[ new nlobjSearchColumn('custrecord_ebay_img_fullurl')]);
 
 		var imgResult;
 		if ((results) && (results.length > 0)) {
@@ -1692,65 +1694,85 @@ function suitelet(request, response){
 			return imgResult.getValue('custrecord_ebay_img_fullurl');
 		};
 
-		var api = jPw.apiet.makeUploadSiteHostedPicturesRequest(); 
-
-		var pictUrl = resolveHttpImgFileUrl(file, imgId);
+		var pictUrl = ebay.resolveHttpImgFileUrl(file, imgId);
 		if (!pictUrl) {
 			var msg = 'Failed to resolve image url for id "'+imgId+'".';
 			nlapiLogExecution('ERROR', msg);
 			throw nlapiCreateError('FILE_URL_FAILED', msg);
 			return;
 		};
-		api.setExternalPictureURL( pictUrl );
-		//api.setExternalPictureURL('http://roadwire.biz/netsuitefile/' + imgId);
-
-		api.setPictureName(file.getName());
-
-		//JPW
-		//response.setContentType('XMLDOC');
-		//response.write( api.getXmlEncode() );
-		//return;
-
-		var retUrl;
-		api.callApiCallback( 
-				function(obj){
-					var fullUrl = obj.getRespAnyVal('FullURL');
-					var pictureName = obj.getRespAnyVal('PictureName');
-					var pictureSet = obj.getRespAnyVal('PictureSet');
-					var pictureFormat = obj.getRespAnyVal('PictureFormat');
-
-					var ebImgRec
-					if (imgResult) {
-						ebImgRec = nlapiLoadRecord(imgResult.getRecordType(), imgResult.getId());
-					} else {
-						ebImgRec = nlapiCreateRecord('customrecord_ebay_image');
-						ebImgRec.setFieldValue('custrecord_ebay_img_ns_img_id', imgId);         
-					};
-
-					ebImgRec.setFieldValue('name', pictureName);
-					ebImgRec.setFieldValue('custrecord_ebay_img_fullurl', fullUrl);
-					ebImgRec.setFieldValue('custrecord_ebay_img_pictfrmt', pictureFormat);
-					ebImgRec.setFieldValue('custrecord_ebay_img_pictset', pictureSet);
-
-					var id = nlapiSubmitRecord(ebImgRec, true);
-
-					retUrl = fullUrl;
-				}, 
-				function(obj){ 
-					var msg = obj.respXmlStr;
-					nlapiLogExecution('ERROR', msg);
-					throw nlapiCreateError('API_ERROR_RESPONSE', msg);
-					return;
-				}
-		);      
-
-		return retUrl;
+		
+		var result = ebay.sendEbayImgUpdNs(pictUrl, file.getName(), imgId, imgResult ? imgResult.getId() : null);
+		if (result) {
+			return result.fullUrl;	
+		};
 	};
+	
+	ebay.sendEbayImgUpdNs = function(url, name, nsImgId, ebImgId) {
+		var result = null;
+		ebay.sendEbayImgApi(url, name, function(rsltObj, respObj) {
+			var ebImgRec;
+			if (ebImgId) {
+				ebImgRec = nlapiLoadRecord('customrecord_ebay_image', ebImgId);
+			} else {
+				ebImgRec = nlapiCreateRecord('customrecord_ebay_image');
+				if (nsImgId) {
+					ebImgRec.setFieldValue('custrecord_ebay_img_ns_img_id', nsImgId);
+				} else {
+					ebImgRec.setFieldValue('custrecord_ebay_img_ext_url', url);
+				};
+			};
+
+			ebImgRec.setFieldValue('name', rsltObj.pictureName);
+			ebImgRec.setFieldValue('custrecord_ebay_img_fullurl', rsltObj.fullUrl);
+			ebImgRec.setFieldValue('custrecord_ebay_img_pictfrmt', rsltObj.pictureFormat);
+			ebImgRec.setFieldValue('custrecord_ebay_img_pictset', rsltObj.pictureSet);
+
+			result = rsltObj;  
+			
+			result.ebayImgId = nlapiSubmitRecord(ebImgRec, true);
+		});
+		return result;
+	};
+	
+	ebay.sendEbayImgApi = function(url, name, fcn) {
+
+		var api = jPw.apiet.makeUploadSiteHostedPicturesRequest();
+
+		api.setExternalPictureURL(url);
+
+		api.setPictureName(name);
+
+		var rsltObj = null;
+		api.callApiCallback(function(respObj) {
+			rsltObj = {
+				fullUrl : respObj.getRespAnyVal('FullURL'),
+				pictureName : respObj.getRespAnyVal('PictureName'),
+				pictureSet : respObj.getRespAnyVal('PictureSet'),
+				pictureFormat : respObj.getRespAnyVal('PictureFormat'),
+			};
+
+			if (fcn) {
+				fcn(rsltObj, respObj);
+			};
+
+			return rsltObj;
+		}
+		, function(obj) {
+			var msg = obj.respXmlStr;
+			nlapiLogExecution('ERROR', msg);
+			throw nlapiCreateError('API_ERROR_RESPONSE', msg);
+			return;
+		});
+
+		return rsltObj;
+	};
+	
 }( this.jPw.ebay = this.jPw.ebay || {}));
 
 /*
- * jPw.ebay.eBayAddUpdListing
- * Suitelet proceudure to add NetSuite Item as an eBay Listing
+ * jPw.ebay.eBayAddUpdListing Suitelet proceudure to add NetSuite Item as an
+ * eBay Listing
  */
 
 (function(ebay) {
@@ -1956,35 +1978,35 @@ function suitelet(request, response){
 	//if (ctgry != '30120')                                         // this was just in here for eBay testing
 	//obj.setItemProp('ConditionID', '1000'); // Condition does not work with  Everything Else > Test Auctions > eBay Use Only      
 
-	var seatCovCtgry = '33702';     // seat covers
+	//var seatCovCtgry = '33702';     // eBay Motors > Parts & Accessories > Car & Truck Parts > Interior > Seat Covers
 	//var rstrFabrCtgry = '111114'; // Services & Installation / Restoration & Fabrication
-	var heatPartCtgry = '33548';    //Parts & Accessories > Car & Truck Parts > Air Conditioning & Heat > Heater Parts
+	//var heatPartCtgry = '33701';    // eBay Motors > Parts & Accessories > Car & Truck Parts > Interior > Seats
 
-	ebay.makeCtgryItemRequest = function(nsCtgry, ebCtgry) {
-		var obj = jPw.apiet.makeRwNewItemRequest();
-		var cfg = ebay.lstgCfgs().calcCfg(nsCtgry);
+	ebay.assignCtgryItemRequest = function(api, part) {
+		var cfg = ebay.lstgCfgs().calcCfg(part.category_id);
 
-		var ctgry1 = cfg.ctgry1 || ebCtgry;           
-		obj.setItemProp('PrimaryCategory', { 'CategoryID': ctgry1 });
+		var ctgry1 = cfg.ctgry1;           
+		api.setItemProp('PrimaryCategory', { 'CategoryID': ctgry1 });
 
 		if (cfg.ctgry2) {
-			obj.setItemProp('SecondaryCategory', { 'CategoryID': cfg.ctgry2 });             
+			api.setItemProp('SecondaryCategory', { 'CategoryID': cfg.ctgry2 });             
 		};              
 
-		return obj;
+		return api;
 	};
 
-	ebay.makeApiForPartCtgry = function(part) {
-		var api;
+	/*ebay.makeApiForPartCtgry = function(part) {
+		var api = jPw.apiet.makeRwNewItemRequest();
+		ebay.assignCtgryItemRequest(api, part);
 		if (part.category_id == leaNsCtgry) {                              // leather
-			api = ebay.makeCtgryItemRequest(leaNsCtgry, seatCovCtgry);
+			
 		} else if (part.category_id == htrNsCtgry) {                       // heater
-			api = ebay.makeCtgryItemRequest(htrNsCtgry, heatPartCtgry);
+			ebay.assignCtgryItemRequest(api, htrNsCtgry, heatPartCtgry);
 		} else {
 			api = jPw.apiet.makeRwNewItemRequest();
 		};
 		return api;
-	};
+	};*/
 
 	ebay.updatePartImgs = function (part) {
 		//part.ebay_img_url = ebay.addUpdEbayImage(part.img_id);	part.ebay_thumb_url = ebay.addUpdEbayImage(part.thumb_id);
@@ -2034,22 +2056,32 @@ function suitelet(request, response){
 							|| (img.url == this.getValue('custrecord_ebay_img_ext_url'))) 
 					{
 						img.ebayUrl = this.getValue('custrecord_ebay_img_fullurl');
+						img.ebayImgId = this.getId();
 						matched = true;
 					};
 				});
 			};
 			return matched;
 		};
+
+		var makeEbUrl = function(img) {
+			if ((img.id) && (!img.url)) {
+				var imgFile = nlapiLoadFile(img.id);
+				img.name = imgFile.getName();
+				img.url = jPw.ebay.resolveHttpImgFileUrl(imgFile, img.id);
+			};
+			var rsltObj = jPw.ebay.sendEbayImgUpdNs(img.url, (img.name || 'no name'), img.id, img.ebayImgId);
+			if (rsltObj) {
+				img.ebayUrl	= rsltObj.fullUrl;
+			};
+		};
 		
 		jPw.each(part.lstgCfg.images, function() {
 			var img = this;
 			if (!assignEbUrl(img)) {
-				if ((img.id) && (!img.url)) {
-					var imgFile = nlapiLoadFile(img.id);
-					img.ebayUrl = ebay.addUpdEbayImage(img.id, imgFile, true);
-				};
+				makeEbUrl(img);
 			};
-		});		
+		});	
 	};
 
 	ebay.loadPartImgsToApi = function (part, api) {
@@ -2097,6 +2129,11 @@ function suitelet(request, response){
 		api.addItemSpecific("Rows", part.rows);
 		api.addItemSpecific("Airbags", part.airbags);
 		api.addItemSpecific("Surface Finish", part.insert_style);
+		var placements = ['Left', 'Right', 'Front'];
+		if (part.rows > 1) {
+			placements.push('Rear');
+		};
+		api.addItemSpecific("Placement on Vehicle", placements);
 
 		//if ((part.ns_part) && (part.base_part != part.ns_part)) {api.addItemSpecific("Other Part Number", part.ns_part);};
 
@@ -2180,11 +2217,16 @@ function suitelet(request, response){
 		if (listing) { // update listing
 			msgCorrId = 'Update';
 			api = jPw.apiet.makeReviseFixedPriceItemRequest();
+			ebay.assignCtgryItemRequest(api, part);
+			
 			api.setItemID(listing.ebayItemId);
 			avail = listing.avail;
 		} else { // add new listing
 			msgCorrId = 'Add';
-			api = ebay.makeApiForPartCtgry(part);
+			//api = ebay.makeApiForPartCtgry(part);
+			var api = jPw.apiet.makeRwNewItemRequest();
+			ebay.assignCtgryItemRequest(api, part);
+			
 			avail = 10;
 			api.setItemProp('Quantity', avail);
 		};
@@ -2249,9 +2291,9 @@ function suitelet(request, response){
 //var xmlStr = ebay.addUpdListing(partno, internalid);
 //response.setContentType('XMLDOC');
 //response.write( xmlStr );
-//			response.setContentType('PLAINTEXT', 'test.txt', 'inline');
-//			response.write( xmlStr );
-//			return;
+//response.setContentType('PLAINTEXT', 'test.txt', 'inline');
+//response.write( xmlStr );
+//return;
 
 			ebay.addUpdListing(partno, internalid);
 
@@ -2264,10 +2306,10 @@ function suitelet(request, response){
 			if ((jPw.ebay.apiXmlInErr) || (jPw.ebay.apiXmErrResp)) {
 				var errStr = '=== API ERROR OUTPUT ===';
 				if (jPw.ebay.apiXmErrResp) {
-					errStr = errSt + '\n' + '=== ERROR REPSONSE ===' + '\n' + jPw.ebay.apiXmErrResp;
+					errStr = errStr + '\n' + '=== ERROR REPSONSE ===' + '\n' + jPw.ebay.apiXmErrResp;
 				}
 				if (jPw.ebay.apiXmlInErr) {
-					errStr = errSt + '\n' + '=== API CALL ===' + '\n' + jPw.ebay.apiXmlInErr;
+					errStr = errStr + '\n' + '=== API CALL ===' + '\n' + jPw.ebay.apiXmlInErr;
 				}
 				response.setContentType('PLAINTEXT', 'test.txt', 'inline');
 				response.write( errStr );

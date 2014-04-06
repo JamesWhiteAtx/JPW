@@ -287,6 +287,21 @@
 			return  'https://rest.netsuite.com';
 		};
 	};
+
+	/**
+	 * The shopping domain exposes media items to non-secure http protocol, required for eBay images
+	 */
+	jPw.getShoppinUrlDomain = function() {
+		var env = nlapiGetContext().getEnvironment();
+
+		if (env=='SANDBOX') {
+			return 'http://shopping.sandbox.netsuite.com';
+		} else if (env=='BETA') {
+			return  'http://shopping.na1.netsuite.com';
+		} else {
+			return  'http://shopping.netsuite.com';
+		};
+	};
 	
 	jPw.getRestUrl = function(identifier, id) {
 		return jPw.getRestUrlDomain() + nlapiResolveURL('RESTLET', identifier, id, true);

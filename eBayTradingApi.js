@@ -334,19 +334,24 @@ this.jPw = this.jPw || {};
                 };
                 
                 function makeNameValueList() {
-                        var obj = {
-                    NameValueList: []
-                        };
+                	var obj = { NameValueList: [] };
                         
-                        obj.addNameValue = function(name, value) {
-                                obj.NameValueList.push({
-                                        Name: name,
-                                Value: value
-                                });
-                                return obj;
-                        };
-                        
+                    obj.addNameValue = function(name, value) {
+                    	var values;
+                    	if (Array.isArray(value)) {
+                    		values = value;
+                    	} else {
+                    		values = [value];
+                    	};
+                    	
+                    	obj.NameValueList.push({
+                        	Name: name,
+                            Value: values
+                    	});
                         return obj;
+                    };
+                        
+                    return obj;
                 };
                 
                 function makeItemCompatibilityList() {
@@ -539,7 +544,7 @@ this.jPw = this.jPw || {};
               "HitCounter": "HiddenStyle",
               "ListingDuration": "GTC",
               "ListingType": "FixedPriceItem",
-              "Location": "Dallas, TX",
+              "Location": "Austin, TX",
               "PaymentMethods": "PayPal",
               "PayPalEmailAddress": '',
               "PrimaryCategory": { "CategoryID": '' },
@@ -621,16 +626,27 @@ this.jPw = this.jPw || {};
                 return obj;
         };
         
+        var setBaseProps = function(obj) {
+            obj.setItemProp('ConditionID', '1000'); // Condition does not work with  Everything Else > Test Auctions > eBay Use Only        
+            obj.setItemProp('AutoPay', 'true');
+            obj.setItemProp('Country', 'US');
+            obj.setItemProp('Currency', 'USD');
+            obj.setItemProp('Site', 'eBayMotors');
+            obj.setItemProp('PostalCode', '78759');
+            obj.setItemProp('DispatchTimeMax', '5');
+            obj.addItemSpecific("Warranty","Yes");
+            obj.addItemSpecific("Brand","Roadwire");
+        };
+        
         apiet.makeRwNewItemRequest = function (env) {
                 var obj = apiet.makeAddFixedPriceItemRequest(env);
-                obj.setItemProp('ConditionID', '1000'); // Condition does not work with  Everything Else > Test Auctions > eBay Use Only        
-                obj.addItemSpecific("Warranty","Yes");
-                obj.addItemSpecific("Brand","Roadwire");
+                setBaseProps(obj);
                 return obj;
         };
         
         apiet.makeReviseFixedPriceItemRequest = function (env) {
                 var obj = apiet.makeFixedPriceItemRequest('ReviseFixedPriceItem', {}, env);
+                setBaseProps(obj);
                 return obj;
         };
         
