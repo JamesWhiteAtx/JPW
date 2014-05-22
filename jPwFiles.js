@@ -2,11 +2,13 @@
  * Module Description
  * 
  * Version    Date            Author           Remarks
- * 1.00       15 Nov 2013     james.white
+ * 1.00       01 April 2013     james.white
  *
  * * Required
  * jPwJsUtils.js
  */
+
+this.jPw = this.jPw || {};
 
 (function(files) {
 	

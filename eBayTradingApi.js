@@ -334,24 +334,19 @@ this.jPw = this.jPw || {};
                 };
                 
                 function makeNameValueList() {
-                	var obj = { NameValueList: [] };
+                        var obj = {
+                    NameValueList: []
+                        };
                         
-                    obj.addNameValue = function(name, value) {
-                    	var values;
-                    	if (Array.isArray(value)) {
-                    		values = value;
-                    	} else {
-                    		values = [value];
-                    	};
-                    	
-                    	obj.NameValueList.push({
-                        	Name: name,
-                            Value: values
-                    	});
+                        obj.addNameValue = function(name, value) {
+                                obj.NameValueList.push({
+                                        Name: name,
+                                Value: value
+                                });
+                                return obj;
+                        };
+                        
                         return obj;
-                    };
-                        
-                    return obj;
                 };
                 
                 function makeItemCompatibilityList() {
@@ -544,7 +539,7 @@ this.jPw = this.jPw || {};
               "HitCounter": "HiddenStyle",
               "ListingDuration": "GTC",
               "ListingType": "FixedPriceItem",
-              "Location": "Austin, TX",
+              "Location": "Dallas, TX",
               "PaymentMethods": "PayPal",
               "PayPalEmailAddress": '',
               "PrimaryCategory": { "CategoryID": '' },
@@ -601,7 +596,7 @@ this.jPw = this.jPw || {};
                 "RefundOption": "MoneyBack",
                 "ReturnsWithinOption": "Days_30",
                 "ReturnsAcceptedOption": "ReturnsAccepted",
-                "Description": "Returns accepted before installation",
+                "Description": "- Re-stocking Fee of 15% on all returns.&#10;- Return only available if product hasn't been installed or used in any way.&#10;- Money back pending product inspection.&#10;&#10;Please visit our Policies tab for additional information regarding returns",
                 "WarrantyOfferedOption": "WarrantyOffered",
                 "WarrantyTypeOption": "ManufacturerWarranty",
                 "WarrantyDurationOption": "Months_1",
@@ -618,7 +613,6 @@ this.jPw = this.jPw || {};
               },
               "OutOfStockControl": "true"
             };
-
                 var obj = apiet.makeFixedPriceItemRequest('AddFixedPriceItem', itemJson, env);
 
                 obj.setItemProp('PayPalEmailAddress', obj.getEnvironment().payPalEmail);
@@ -628,12 +622,6 @@ this.jPw = this.jPw || {};
         
         var setBaseProps = function(obj) {
             obj.setItemProp('ConditionID', '1000'); // Condition does not work with  Everything Else > Test Auctions > eBay Use Only        
-            obj.setItemProp('AutoPay', 'true');
-            obj.setItemProp('Country', 'US');
-            obj.setItemProp('Currency', 'USD');
-            obj.setItemProp('Site', 'eBayMotors');
-            obj.setItemProp('PostalCode', '78759');
-            obj.setItemProp('DispatchTimeMax', '5');
             obj.addItemSpecific("Warranty","Yes");
             obj.addItemSpecific("Brand","Roadwire");
         };

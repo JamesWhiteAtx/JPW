@@ -4,27 +4,19 @@
  */
 
 var test = function (request, response) {
-	var internalid = 233188; 
-	var part;
-	part = jPw.ebay.getNsPart(internalid, {cars: false, config: true, images: true});
-	//jPw.jsonResponse( request, response, {part: part} );
-	//return;
-
-	jPw.ebay.updatePartImgs(part);
+	var internalid  = 339666;
+	var part = jPw.ebay.getNsPart(internalid, {cars: true, images: true, config: true});
 	
-	var html = '<ul>';
-	
-	jPw.each(part.lstgCfg.images, function() {
-		var img = this;
-		html += '<li>'+ img.id +' - '+ img.url  +' || '+ img.ebayUrl +'</li>';
-	});
-	
-	html += '</ul>'; 
-    response.setContentType('HTMLDOC', 'err.html', 'inline');
-    response.write( html );
-
-//	jPw.jsonResponse( request, response, {count: part.lstgCfg.images.length, images: part.lstgCfg.images} );
+	jPw.jsonResponse( request, response, {count: part.lstgCfg.images.length, images: part.lstgCfg.images} );
 };
+/*
+ 	var form = nlapiCreateForm('SPA');
+	var myInlineHtml = form.addField( 'custpage_btn', 'inlinehtml');
+    var restResp = nlapiRequestURL( 'https://rwresources.azurewebsites.net/ebay', null , null, 'GET');  
+	myInlineHtml.setDefaultValue(restResp.getBody());
+	response.writePage( form );
+
+ */
 /*	var ptrnLastCar = function(ptrnId) {
 
 		var results = nlapiSearchRecord('customrecord_leather_pattern', null,

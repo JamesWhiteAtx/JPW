@@ -1,0 +1,298 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>heater-listing</title>
+<script type="text/javascript">
+function MM_preloadImages() { //v3.0
+var d=document; if(d.images){ if(!d.MM_p) d.MM_p=new Array();
+var i,j=d.MM_p.length,a=MM_preloadImages.arguments; for(i=0; i<a.length; i++)
+if (a[i].indexOf("#")!=0){ d.MM_p[j]=new Image; d.MM_p[j++].src=a[i];}}
+}
+</script>
+<script type="text/javascript">
+function MM_swapImgRestore() { //v3.0
+  var i,x,a=document.MM_sr; for(i=0;a&&i<a.length&&(x=a[i])&&x.oSrc;i++) x.src=x.oSrc;
+}
+function MM_findObj(n, d) { //v4.01
+  var p,i,x;  if(!d) d=document; if((p=n.indexOf("?"))>0&&parent.frames.length) {
+d=parent.frames[n.substring(p+1)].document; n=n.substring(0,p);}
+if(!(x=d[n])&&d.all) x=d.all[n]; for (i=0;!x&&i<d.forms.length;i++) x=d.forms[i][n];
+for(i=0;!x&&d.layers&&i<d.layers.length;i++) x=MM_findObj(n,d.layers[i].document);
+if(!x && d.getElementById) x=d.getElementById(n); return x;
+}
+function MM_swapImage() { //v3.0
+var i,j=0,x,a=MM_swapImage.arguments; document.MM_sr=new Array; for(i=0;i<(a.length-2);i+=3)
+if ((x=MM_findObj(a[i]))!=null){document.MM_sr[j++]=x; if(!x.oSrc) x.oSrc=x.src; x.src=a[i+2];}
+}
+</script>
+<style type="text/css">
+.bullets {
+font-family: Helvetica, arial, sans-serif;
+font-size: 13px;
+line-height: 24px;
+color: #666;
+text-indent: 0px;
+padding-left: 20px;
+list-style-type: none;
+padding-top: 5px;
+}
+.tabelhead {
+color: #FFF;
+background-color: #999;
+text-align: center;
+padding-top: 3px;
+padding-bottom: 3px;
+font-family: Arial, Helvetica, sans-serif;
+font-size: 12px;
+}
+.tablecells {
+font-family: Arial, Helvetica, sans-serif;
+font-size: 12px;
+color: #333;
+text-align: center;
+padding-top: 3px;
+padding-right: 3px;
+padding-bottom: 3px;
+padding-left: 3px;
+}
+.headers {
+font-family: Helvetica, Arial, sans-serif;
+font-size: 18px;
+background-color: #484848;
+color: #FFF;
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 20px;
+}
+.text {
+font-family: Arial, Helvetica, sans-serif;
+font-size: 12px;
+color: #666;
+padding-top: 15px;
+padding-left: 15px;
+line-height: 145%;
+}
+.hiddenTarget {
+display:none;
+position:fixed;}
+.tabbedPages {
+position:relative;
+margin:50px 0;}
+ul.tabs {
+padding:0;
+margin:0;
+list-style:none;
+float:left;
+position:relative;
+z-index:100;}
+ul.tabs li {
+float:left;
+margin-right:2px;}
+ul.tabs li a {
+display:block;
+font:normal 12px/30px arial, sans-serif;
+border:1px solid #aaa;
+border-radius:5px 5px 0 0;
+background:#69c;
+padding:0 20px;
+text-decoration:none;
+color:#fff;
+background-color: #484848;}
+.tabcontent {
+float: left;
+width: 950px;
+padding: 20px;
+border: 1px solid #aaa;
+border-radius: 0 5px 5px 5px;
+background: #fff;
+position: relative;
+z-index: 10;
+display: none;
+clear: left;
+top: -1px;
+box-shadow: 0 15px 10px -15px rgba(0,0,0,0.4);
+}
+.tabcontent p {
+padding:0 0 5px 0;
+margin:0;
+font:normal 12px/20px arial, sans-serif;
+color:#333;}
+.tabcontent h4 {
+padding:0 0 10px 0;
+margin:0;
+font:bold 14px/25px arial, sans-serif;
+color:#000;}
+.tabcontent img {
+border:1px solid #444;
+display:block;
+float:left;
+margin:0 20px 0 0;
+box-shadow:0 15px 10px -15px rgba(0,0,0,0.4);}
+/* change the tab to selected style */
+ul.tabs li a.default,
+#tab1:target ~ .tabbedPages .tabs li a.default,
+#tab2:target ~ .tabbedPages .tabs li a.tab2,
+#tab3:target ~ .tabbedPages .tabs li a.tab3,
+#tab4:target ~ .tabbedPages .tabs li a.tab4 {background-color:#fff; border-bottom:1px solid #fff; color:#000;} 
+/* show the tab content */
+div.default,
+#tab1:target ~ .tabbedPages div.default,
+#tab2:target ~ .tabbedPages div#view2,
+#tab3:target ~ .tabbedPages div#view3,
+#tab4:target ~ .tabbedPages div#view4 {display:block;}
+/* reset the unclicked tabs to default */
+#tab2:target ~ .tabbedPages .tabs li a.default,
+#tab3:target ~ .tabbedPages .tabs li a.default,
+#tab4:target ~ .tabbedPages .tabs li a.default {background-color:#484848; border:1px solid #888; color:#fff;}
+/* hide the default tab when selecting other tabs*/
+#tab2:target ~ .tabbedPages div.default,
+#tab3:target ~ .tabbedPages div.default,
+#tab4:target ~ .tabbedPages div.default {display:none;}
+.clear {clear:left;}
+</style>
+</head>
+<body onload="MM_preloadImages('../images/how-to-order-step1-rollover.png','../images/how-to-order-step2-rollover.png','../images/how-to-order-step3-rollover.png')">
+<table width="1000" border="0" align="center" cellpadding="0" cellspacing="0">
+  <tr>
+    <td width="1021"><a href="http://stores.ebay.com/Roadwire "><img src="http://leatherseatlibrary.com/ebay/listing_01.png" alt="roadwire" width="1000" height="121" border="0" /></a></td>
+</tr>
+  <tr>
+    <td><img src="http://leatherseatlibrary.com/ebay/listing_02.png" alt="roadwire" width="1000" height="67" /></td>
+  </tr>
+  <tr>
+    <td><table width="1000" border="0" cellspacing="0" cellpadding="0">
+      <tr>
+        <td><img src="http://leatherseatlibrary.com/ebay/heater-listing-banner.png" alt="roadwire" width="687" height="312" /></td>
+        <td><a href="http://stores.ebay.com/roadwire" target="_self"><img src="http://leatherseatlibrary.com/ebay/leather-sm-banner.png" alt="roadwire" width="313" height="312" /></a></td>
+      </tr>
+      <tr>
+        <td valign="top" class="bullets"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+          <tr>
+            <td valign="top">• Carbon fiber construction<br />
+• Balanced heat distribution<br />
+• Two temperature settings<br />
+• Water resistant <br /><br /></td>
+            <td valign="top">• Safety minded engineering<br />
+• Installed under existing upholstery<br />
+• Warranty, shipping, and installation included</td>
+          </tr>
+      </table></td>
+        <td class="bullets">&nbsp;</td>
+      </tr>
+      <tr>
+        <td colspan="2" class="bullets"><p>From choosing the right leather kit for your vehicle through the buying process ending in the installation, Roadwire has you covered. Roadwire is partnering <br />
+            with Installernet to bring you peace of mind and an easy process that guarantees Roadwire's quality Leather will  be installed professionally.</p></td>
+      </tr>
+    </table></td>
+  </tr>
+  <tr>
+    <td>&nbsp;</td>
+  </tr>
+  <tr>
+    <td><table width="1000" border="0" cellspacing="0" cellpadding="0">
+      <tr>
+         <td><a href="#" onmouseout="MM_swapImgRestore()" onmouseover="MM_swapImage('step 1','','http://leatherseatlibrary.com/ebay/how-to-order-step1-rollover.png',1)"><img src="http://leatherseatlibrary.com/ebay/how-to-order-step1.png" width="332" height="253" id="step 1" /></a></td>
+        <td><a href="#" onmouseout="MM_swapImgRestore()" onmouseover="MM_swapImage('step 2','','http://leatherseatlibrary.com/ebay/how-to-order-step2-rollover.png',1)"><img src="http://leatherseatlibrary.com/ebay/how-to-order-step2.png" width="314" height="253" id="step 2" /></a></td>
+        <td><a href="#" onmouseout="MM_swapImgRestore()" onmouseover="MM_swapImage('step 3','','http://leatherseatlibrary.com/ebay/how-to-order-step3-rollover.png',1)"><img src="http://leatherseatlibrary.com/ebay/how-to-order-step3.png" width="354" height="253" id="step 3" /></a></td>
+      </tr>
+      <tr></tr>
+    </table></td>
+  </tr>
+  <tr>
+    <td>&nbsp;</td>
+  </tr>
+  <tr>
+    <td><html>
+     </head>
+<body>
+<b id="tab1" class="hiddenTarget"></b>
+<b id="tab2" class="hiddenTarget"></b>
+<b id="tab3" class="hiddenTarget"></b>
+<b id="tab4" class="hiddenTarget"></b>
+<div class="tabbedPages">
+<ul class="tabs">
+<li><a href="#tab1" class="default tab1 tabpages">CONTACT US</a></li>
+<li><a href="#tab2" class="tab2 tabpages">PAYMENTS</a></li>
+<li><a href="#tab3" class="tab3 tabpages">SHIPPING</a></li>
+<li><a href="#tab4" class="tab4 tabpages">POLICIES</a></li>
+</ul>
+<div id="view1" class="tabcontent default">
+<p>A friendly and knowledgeable staff is the cornerstone of our success. We&rsquo;re committed to making sure that every question regarding your purchase or our products receives an accurate answer as soon as possible. The best way to reach us at anytime is through eBay&rsquo;s messaging system at any time. Click here to send us a message: </p>
+            <p><strong><br />
+              <a href="http://contact.ebay.com/ws/eBayISAPI.dll?FindAnswers&_trksid=p2050430.m2531.l4583&rt=nc&&requested=roadwire&guest=1">Contact Us</a></strong></p>
+            <p>If you prefer, we can also be reached Monday - Friday from 9am-5pm CST by calling 877-701-5783. </p>
+            <p class="text">&nbsp;</p>
+</div>
+<div id="view2" class="tabcontent">
+<p>All payments must be made via PayPal. <br /><br />PayPal allows you to pay using any major credit card or by having funds directly transferred from your bank account. <br />If you do not currently have an account with them, you may register for one at <strong><u><a href="https://www.paypal.com">PayPal </a></u>.</strong></p>
+        <p>* Immediate payment is required upon selecting &quot;Buy It Now&quot;. <br /><br /><br /></p>
+</div>
+<div id="view3" class="tabcontent">
+<p>All orders typically ship within 2 business days from the order confirmation. We only ship within the Continental U.S. and do not offer shipping to P.O. Boxes, APO or FPO addresses. International shipping is not available at this time. </p>
+                <p>Please note that in transit times are only estimates, and might be affected by factors outside of our control. The options and prices listed above are offered exclusively to our eBay customers. </p>
+          <table width="50%" border="1" cellspacing="0" cellpadding="0">
+            <tr>
+              <td class="tabelhead">S<strong>ervice</strong></td>
+              <td class="tabelhead"><strong>  Est. Transit Time </strong></td>
+              <td class="tabelhead"><strong>  Charge</strong></td>
+            </tr>
+            <tr>
+              <td class="tablecells"> UPS Ground  </td>
+              <td class="tablecells">  5-7 business days</td>
+              <td class="tablecells"> Free</td>
+</tr>
+            <tr>
+              <td class="tablecells"> UPS 2 Day  </td>
+              <td class="tablecells">2 business days </td>
+              <td class="tablecells">  $50</td>
+            </tr>
+            <tr>
+              <td class="tablecells"> UPS Overnight </td>
+              <td class="tablecells">1 business day </td>
+              <td class="tablecells"> $75</td>
+            </tr>
+          </table>
+          <p>&nbsp;</p>
+        
+<p class="text">&nbsp;</p>
+</div>
+<div id="view4" class="tabcontent">
+          <p><strong>Cancellation Policy</strong></p>
+                <p>To request an order cancelation, contact our customer service department using the Contact us link below or call our toll free phone number as soon as possible. If your order has not been processed, we will do our best to cancel it. However, if you order has been processed and a conﬁrmation email has been sent, we may not be able to process your cancellation request. <br />
+                  <br />
+                  Please understand due to the nature of our business, once an order is placed there are immediate, relative costs associated with preparing the order. Therefore, we must include our standard 15% restocking fee after this point. </p>
+                <p>For cancellations or changes prior to the processing of your order please click <a href="http://contact.ebay.com/ws/eBayISAPI.dll?FindAnswers&amp;_trksid=p2050430.m2531.l4583&amp;rt=nc&amp;&amp;requested=roadwire&amp;guest=1">Contact us</a> or call 877-701-5783.<br />
+                </p>
+          <p>&nbsp;</p>
+          <p><strong><a href="http://contact.ebay.com/ws/eBayISAPI.dll?FindAnswers&amp;_trksid=p2050430.m2531.l4583&amp;rt=nc&amp;&amp;requested=roadwire&amp;guest=1">Contact us</a></strong></p>
+          <p>Please understand due to the nature of our business, once an order is placed there are immediate, relative costs associated with preparing the order. Therefore, we must include our standard 15% restocking fee after this point. </p>
+          <p>For cancellations or changes prior to the processing of your order please call 877-701-5783.</p>
+          <p>&nbsp;</p>
+          <p><strong>Return and Exchanges Policy</strong></p>
+                <p>We offer a simple solution for returns to our eBay customers. Customers may return our product within 30 days of shipping. For the product to qualify for a refund, it must be sent back in the packaging and without signs of use or attempt of installation. </p>
+                <p>There is a 15% restocking fee on all returned products.<br />
+                  <br />
+                  To start the process of return or exchange, please contact us by clicking <a href="http://contact.ebay.com/ws/eBayISAPI.dll?FindAnswers&amp;_trksid=p2050430.m2531.l4583&amp;rt=nc&amp;&amp;requested=roadwire&amp;guest=1">here</a>.
+</p>
+                <p><strong><br />
+  Pricing</strong></p>
+<p>eBay customers have the opportunity to buy our products at a price offered exclusively on purchases made through eBay. Our leather and seat heater kits are priced to deliver the convenience of professional installation while providing substantial savings to the customer. </p>
+<p>&nbsp;</p>
+<p><strong>Tax Policy</strong></p>
+<p>We are required to collect all applicable sales tax when an order is shipped to a state where Roadwire has a significant economic presence. We currently have presence in the following states: California, Colorado, Florida, Georgia, Illinois, Indiana, Michigan, Minnesota, Mississippi, Nevada, North Carolina, Ohio, Pennsylvania, Texas, Washington, Wisconsin. </p>
+<p>Unfortunately, we cannot accommodate any type of tax-exempt orders placed through eBay. For more information regarding tax-free exemptions we urge you to check your state &amp; local sales tax authority for complete tax exempt purchasing rules. </p></td>
+</div>
+</div>
+<br class="clear"> <br />
+  <br />
+  <br />
+</body>
+</html>&nbsp;</td>
+  </tr>
+  <tr>
+    <td><br /><img src="http://leatherseatlibrary.com/ebay/listing_18.png" alt="roadwire" width="1000" height="178" /></td>
+  </tr>
+</table>
+</body>
+</html>
