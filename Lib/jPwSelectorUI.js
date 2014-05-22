@@ -41,7 +41,7 @@
 							if (result[successProp]) {
 								resultfcn(result);
 							} else {
-								if (errFcn) { errFcn(result.message); }
+								if (errFcn) { errFcn(result, successProp); }
 							};
 						} else {
 							if (errFcn) { errFcn('No result body'); }
@@ -54,8 +54,14 @@
 		}		
 	};
 	
+	jPw.leaSelUrl = null;
+	
 	jPw.slctrResult = function(type, parmObj, resultfcn, errFcn) {
-		var url = nlapiResolveURL('SUITELET', 'customscript_leather_selector','customdeploy_leather_selector', null);  
+		var url;
+		if (!jPw.leaSelUrl) {
+			jPw.leaSelUrl = nlapiResolveURL('SUITELET', 'customscript_leather_selector','customdeploy_leather_selector', null);	
+		};
+		url = jPw.leaSelUrl; 
 		url = url + '&type=' + type;
 		jPw.suiteletResult(url, parmObj, 'success', resultfcn, errFcn);
 	};
@@ -303,12 +309,15 @@
 					$.extend(slctr.results, result);
 					slctr.updateDlg();
 				},
-				function(e) {
+				function(e, successProp) {
 					slctr.listDlg.endLoading();
 					if ( e instanceof nlobjError ) {
 						var msg = e.getCode() + '\n' + e.getDetails() + '\n' + e.getStackTrace();
 						nlapiLogExecution( 'DEBUG', 'system error', msg);
 						alert(msg);
+					} else if (e && (e[successProp] === false) && e.message) {
+						alert('Sorry - ' + e.message);
+						
 					} else {
 						nlapiLogExecution( 'DEBUG', 'unexpected error', e.toString());
 						alert('unexpected error: ' + e);
@@ -670,11 +679,11 @@
 		carSlctr.assignDlg( jPw.createSlctrDialog(dlgId) );
 		carSlctr.setBaseList([
   			{type: 'makes', title: 'Makes', objName: 'make', idName: 'makeid', valName: 'makeName'},
-			{type: 'years', title: 'Years', objName: 'yr', idName: 'yearid', valName: 'year', parms: ['makeid']},
-			{type: 'models', title: 'Models', objName: 'model;', idName: 'modelid', valName: 'modelName', parms: ['makeid', 'year']},
-			{type: 'bodies', title: 'Bodies', objName: 'body', idName: 'bodyid', valName: 'bodyName', parms: ['makeid', 'year', 'modelid']},
-			{type: 'trims', title: 'Trim Levels', objName: 'trim', idName: 'trimid', valName: 'trimName', parms: ['makeid', 'year', 'modelid', 'bodyid']},
-			{type: 'cars', title: 'Cars', objName: 'car', idName: 'carid', valName: 'carName', parms: ['makeid', 'year', 'modelid', 'bodyid', 'trimid']}	
+			{type: 'anyyears', listName: 'years', title: 'Years', objName: 'yr', idName: 'yearid', valName: 'year', parms: ['makeid']},
+			{type: 'anymodels', listName: 'models', title: 'Models', objName: 'model;', idName: 'modelid', valName: 'modelName', parms: ['makeid', 'year']},
+			{type: 'anybodies', listName: 'bodies', title: 'Bodies', objName: 'body', idName: 'bodyid', valName: 'bodyName', parms: ['makeid', 'year', 'modelid']},
+			{type: 'anytrims', listName: 'trims', title: 'Trim Levels', objName: 'trim', idName: 'trimid', valName: 'trimName', parms: ['makeid', 'year', 'modelid', 'bodyid']},
+			{type: 'anycars', listName: 'cars', title: 'Cars', objName: 'car', idName: 'carid', valName: 'carName', parms: ['makeid', 'year', 'modelid', 'bodyid', 'trimid']}	
 		 ]);
 		
 		carSlctr.tltPrfx = 'Select Vehicle';

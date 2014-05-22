@@ -44,8 +44,8 @@
                 });
         };
 
-        slctr.yearsResult = function(makeId, ctlgs) {
-                var results = jPw.cars.getCarMkSearch(makeId, ctlgs).addCol(new nlobjSearchColumn('custrecord_year')).results();
+        slctr.yearsResult = function(makeId, ctlgs, anyCar) {
+                var results = jPw.cars.getCarMkSearch(makeId, ctlgs, anyCar).addCol(new nlobjSearchColumn('custrecord_year')).results();
                 if (!results) {
                         return jPw.errResult('no years returned', {makeid: makeId});
                 };
@@ -65,12 +65,12 @@
                 });
         };
 
-        slctr.modelsResult = function(makeId, year, ctlgs) {
+        slctr.modelsResult = function(makeId, year, ctlgs, anyCar) {
                 var yrIds = jPw.cars.getYrIds(year);
 
                 var results;
                 if ((yrIds) && (yrIds.length>0)) {
-                        results = jPw.cars.getCarYrSearch(makeId, yrIds, ctlgs)
+                        results = jPw.cars.getCarYrSearch(makeId, yrIds, ctlgs, anyCar)
                                 .addCol(new nlobjSearchColumn('custrecord_model'))
                                 .addCol(new nlobjSearchColumn('name', 'custrecord_model'))
                                 .results();
@@ -86,10 +86,10 @@
                 });
         };
 
-        slctr.bodiesResult = function(makeId, year, modelId, ctlgs){
+        slctr.bodiesResult = function(makeId, year, modelId, ctlgs, anyCar){
                 var yrIds = jPw.cars.getYrIds(year);
 
-                var results = jPw.cars.getCarMdSearch(makeId, yrIds, modelId, ctlgs)
+                var results = jPw.cars.getCarMdSearch(makeId, yrIds, modelId, ctlgs, anyCar)
                         .addCol(new nlobjSearchColumn('custrecord_body'))
                         .addCol(new nlobjSearchColumn('name', 'custrecord_body'))
                         .results();
@@ -105,10 +105,10 @@
                 });
         };
 
-        slctr.trimsResult = function(makeId, year, modelId, bodyId, ctlgs) {
+        slctr.trimsResult = function(makeId, year, modelId, bodyId, ctlgs, anyCar) {
                 var yrIds = jPw.cars.getYrIds(year);
                 
-                var results = jPw.cars.getCarBdSearch(makeId, yrIds, modelId, bodyId, ctlgs)
+                var results = jPw.cars.getCarBdSearch(makeId, yrIds, modelId, bodyId, ctlgs, anyCar)
                         .addCol(new nlobjSearchColumn('custrecord_tl'))
                         .addCol(new nlobjSearchColumn('name', 'custrecord_tl'))
                         .results();
@@ -125,10 +125,10 @@
                 });
         };
 
-        slctr.carsResult = function(makeId, year, modelId, bodyId, trimId, ctlgs) {
+        slctr.carsResult = function(makeId, year, modelId, bodyId, trimId, ctlgs, anyCar) {
                 var yrIds = jPw.cars.getYrIds(year);
                 
-                var results = jPw.cars.getCarTlSearch(makeId, yrIds, modelId, bodyId, trimId, ctlgs)
+                var results = jPw.cars.getCarTlSearch(makeId, yrIds, modelId, bodyId, trimId, ctlgs, anyCar)
                         .addCol(new nlobjSearchColumn('name'))
                         .addCol(new nlobjSearchColumn('custrecord_ab'))
                         .addCol(new nlobjSearchColumn('custrecord_rw'))
@@ -675,16 +675,16 @@
                 return jPw.slctr.makesResult(ctlgs, true);
         };
         
-        slctr.yearsResponse = function(request, ctlgs){
+        slctr.yearsResponse = function(request, ctlgs, anyCar){
                 var makeId = jPw.getIdParm(request, 'makeid');
                 if (typeof makeId !== 'number') {
                         return makeId;
                 } else {
-                        return jPw.slctr.yearsResult(makeId, ctlgs);
+                        return jPw.slctr.yearsResult(makeId, ctlgs, anyCar);
                 }
         };
         
-        slctr.modelsResponse = function(request, ctlgs){
+        slctr.modelsResponse = function(request, ctlgs, anyCar){
                 var makeId = jPw.getIdParm(request, 'makeid');
                 if (typeof makeId !== 'number') {
                         return makeId;
@@ -693,10 +693,10 @@
                 if (!year) {
                         return jPw.errResult('missing year parameter');
                 };
-                return jPw.slctr.modelsResult(makeId, year, ctlgs);
+                return jPw.slctr.modelsResult(makeId, year, ctlgs, anyCar);
         };
         
-        slctr.bodiesResponse = function(request, ctlgs){
+        slctr.bodiesResponse = function(request, ctlgs, anyCar){
                 var makeId = jPw.getIdParm(request, 'makeid');
                 if (typeof makeId !== 'number') {
                         return makeId;
@@ -710,10 +710,10 @@
                 if (typeof modelId !== 'number') {
                         return modelId;
                 };
-                return jPw.slctr.bodiesResult(makeId, year, modelId, ctlgs);
+                return jPw.slctr.bodiesResult(makeId, year, modelId, ctlgs, anyCar);
         };
         
-        slctr.trimsResponse = function(request, ctlgs){
+        slctr.trimsResponse = function(request, ctlgs, anyCar){
                 var makeId = jPw.getIdParm(request, 'makeid');
                 if (typeof makeId !== 'number') {
                         return makeId;
@@ -731,10 +731,10 @@
                         return bodyId;
                 };
                 
-                return jPw.slctr.trimsResult(makeId, year, modelId, bodyId, ctlgs);
+                return jPw.slctr.trimsResult(makeId, year, modelId, bodyId, ctlgs, anyCar);
         };
         
-        slctr.carsResponse = function(request, ctlgs){
+        slctr.carsResponse = function(request, ctlgs, anyCar){
                 var makeId = jPw.getIdParm(request, 'makeid');
                 if (typeof makeId !== 'number') {
                         return makeId;
@@ -757,7 +757,7 @@
                         return trimId;
                 };
                 
-                return jPw.slctr.carsResult(makeId, year, modelId, bodyId, trimId, ctlgs);
+                return jPw.slctr.carsResult(makeId, year, modelId, bodyId, trimId, ctlgs, anyCar);
         };
         
         slctr.carptrnsResponse = function(request, ctlgs) {
@@ -878,32 +878,37 @@
         };
         
         slctr.selectorType = function(request, response, type, ctlgs) {
-                switch(type){
-                        case 'makes': jPw.successRespond(request, response, jPw.slctr.makesResponse(request, ctlgs));break;
-                        case 'years': jPw.successRespond(request, response, jPw.slctr.yearsResponse(request, ctlgs));break;
-                        case 'models': jPw.successRespond(request, response, jPw.slctr.modelsResponse(request, ctlgs));break;
-                        case 'bodies': jPw.successRespond(request, response, jPw.slctr.bodiesResponse(request, ctlgs));break;
-                        case 'trims': jPw.successRespond(request, response, jPw.slctr.trimsResponse(request, ctlgs));break;
-                        case 'cars': jPw.successRespond(request, response, jPw.slctr.carsResponse(request, ctlgs));break;
-                        case 'carptrns': jPw.successRespond(request, response, jPw.slctr.carptrnsResponse(request, ctlgs));break;
-                        case 'carintcols': jPw.successRespond(request, response, jPw.slctr.carintcolsResponse(request, ctlgs));break;
-                        case 'ptrnrecs': jPw.successRespond(request, response, jPw.slctr.ptrnrecsResponse(request, ctlgs));break;
-                        case 'ptrnkits': jPw.successRespond(request, response, jPw.slctr.ptrnkitsResponse(request, ctlgs));break;
+        	switch(type){
+        		case 'makes': jPw.successRespond(request, response, jPw.slctr.makesResponse(request, ctlgs));break;
+                case 'years': jPw.successRespond(request, response, jPw.slctr.yearsResponse(request, ctlgs));break;
+                case 'models': jPw.successRespond(request, response, jPw.slctr.modelsResponse(request, ctlgs));break;
+                case 'bodies': jPw.successRespond(request, response, jPw.slctr.bodiesResponse(request, ctlgs));break;
+                case 'trims': jPw.successRespond(request, response, jPw.slctr.trimsResponse(request, ctlgs));break;
+                case 'cars': jPw.successRespond(request, response, jPw.slctr.carsResponse(request, ctlgs));break;
+                case 'carptrns': jPw.successRespond(request, response, jPw.slctr.carptrnsResponse(request, ctlgs));break;
+                case 'carintcols': jPw.successRespond(request, response, jPw.slctr.carintcolsResponse(request, ctlgs));break;
+                case 'ptrnrecs': jPw.successRespond(request, response, jPw.slctr.ptrnrecsResponse(request, ctlgs));break;
+                case 'ptrnkits': jPw.successRespond(request, response, jPw.slctr.ptrnkitsResponse(request, ctlgs));break;
 
-                        case 'carptrnsso': jPw.successRespond(request, response, jPw.slctr.carptrnsSOResponse(request, ctlgs));break;
-                        case 'ptrnrecsso': jPw.successRespond(request, response, jPw.slctr.ptrnrecsSOResponse(request, ctlgs));break;
-                        case 'ptrnkitsso': jPw.successRespond(request, response, jPw.slctr.ptrnkitsSOResponse(request, ctlgs));break;
-                        
-                        case 'itemqtys': jPw.successRespond(request, response, jPw.slctr.itemqtysResponse(request, ctlgs));break;
-                        
-                        case 'makelogos': jPw.successRespond(request, response, jPw.slctr.makeLogosResponse(request, ctlgs));break;
+                case 'anyyears': jPw.successRespond(request, response, jPw.slctr.yearsResponse(request, ctlgs, true));break;
+                case 'anymodels': jPw.successRespond(request, response, jPw.slctr.modelsResponse(request, ctlgs, true));break;
+                case 'anybodies': jPw.successRespond(request, response, jPw.slctr.bodiesResponse(request, ctlgs, true));break;
+                case 'anytrims': jPw.successRespond(request, response, jPw.slctr.trimsResponse(request, ctlgs, true));break;
+                case 'anycars': jPw.successRespond(request, response, jPw.slctr.carsResponse(request, ctlgs, true));break;
+                
+                case 'carptrnsso': jPw.successRespond(request, response, jPw.slctr.carptrnsSOResponse(request, ctlgs));break;
+                case 'ptrnrecsso': jPw.successRespond(request, response, jPw.slctr.ptrnrecsSOResponse(request, ctlgs));break;
+                case 'ptrnkitsso': jPw.successRespond(request, response, jPw.slctr.ptrnkitsSOResponse(request, ctlgs));break;
+                
+                case 'itemqtys': jPw.successRespond(request, response, jPw.slctr.itemqtysResponse(request, ctlgs));break;
+                
+                case 'makelogos': jPw.successRespond(request, response, jPw.slctr.makeLogosResponse(request, ctlgs));break;
 
-                        case 'trimcolors': jPw.successRespond(request, response, jPw.slctr.trimcolorsResponse(request, ctlgs));break;
-                        case 'insertcolors': jPw.successRespond(request, response, jPw.slctr.insertcolorsResponse(request, ctlgs));break;
-
-                        
-                        default: nlapiLogExecution('ERROR', 'invalid type parameter', type); break;
-                };
+                case 'trimcolors': jPw.successRespond(request, response, jPw.slctr.trimcolorsResponse(request, ctlgs));break;
+                case 'insertcolors': jPw.successRespond(request, response, jPw.slctr.insertcolorsResponse(request, ctlgs));break;
+                
+                default: nlapiLogExecution('ERROR', 'invalid type parameter', type); break;
+            };
         };
         
 }( this.jPw.slctr = this.jPw.slctr || {}));

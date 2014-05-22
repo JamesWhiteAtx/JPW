@@ -272,9 +272,22 @@
 	
 	jPw.displayLeaSlctrMnuItm = function(carid) {
 		if (jPw.leaSlctrMnuItm) {
+			
+			jPw.leaSlctrMnuItm.hideMnuItm();
+			
 			carid = carid || nlapiGetFieldValue(vhclFldId);
 			if (carid) {
-				jPw.leaSlctrMnuItm.showMnuItm();
+				
+				jPw.slctrResult('carptrnsso', {carid: carid}, 
+					function(result) {
+						jPw.leaSlctrMnuItm.showMnuItm();
+					},
+					function(e, successProp) {
+						jPw.leaSlctrMnuItm.hideMnuItm();
+					}
+				);
+				
+				//jPw.leaSlctrMnuItm.showMnuItm();
 			} else {
 				jPw.leaSlctrMnuItm.hideMnuItm();
 			}
