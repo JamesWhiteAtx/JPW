@@ -7,31 +7,50 @@
       <file name="Listing.html" bundleable="false" hideInBundle="false" isOnline="false"/>
     </folder>
     <folder name="Lib" bundleable="false">
-      <file name="jPwClientUtils.js" bundleable="false" hideInBundle="false" isOnline="false">
+      <file name="jPwClientUtils.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8">
         <description>Client Utility Functions</description>
       </file>
-      <file name="jPwJsUtils.js" bundleable="false" hideInBundle="false" isOnline="false"/>
-      <file name="jPwNsScriptUtils.js" bundleable="false" hideInBundle="false" isOnline="false"/>
-      <file name="jPwSchedule.js" bundleable="false" hideInBundle="false" isOnline="false"/>
-      <file name="jPwSelectorUI.js" bundleable="false" hideInBundle="false" isOnline="false"/>
-      <file name="jPwServerUtils.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+      <file name="jPwJsUtils.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
+      <file name="jPwNsScriptUtils.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
+      <file name="jPwSchedule.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
+      <file name="jPwSelectorUI.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
+      <file name="jPwServerUtils.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
     </folder>
     <file name="CstSoConfigOption.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+<<<<<<< HEAD
+    <file name="DiInvAdjForm.js" bundleable="false" hideInBundle="false" isOnline="false"/>
     <file name="EbayParts.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+=======
+    <file name="DiInvAdjForm.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
+    <file name="EbayParts.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
+>>>>>>> dc48e121ed51ff8f97c414076c214a702eecfe30
     <file name="PartsListing.js" bundleable="false" hideInBundle="false" isOnline="false"/>
-    <file name="RoadwireEbay.js" bundleable="false" hideInBundle="false" isOnline="false"/>
-    <file name="eBayLogo.png" bundleable="false" hideInBundle="false" isOnline="false"/>
-    <file name="eBayTradingApi.js" bundleable="false" hideInBundle="false" isOnline="false"/>
-    <file name="jPwCars.js" bundleable="false" hideInBundle="false" isOnline="false"/>
-    <file name="jPwCatalogs.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+    <file name="RoadwireEbay.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
+    <file name="eBayLogo.png" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
+    <file name="eBayTradingApi.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
+    <file name="jPwCars.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
+    <file name="jPwCatalogs.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
     <file name="jPwConfiguratorUI.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+<<<<<<< HEAD
     <file name="jPwFiles.js" bundleable="false" hideInBundle="false" isOnline="false"/>
     <file name="jPwFormCstSO.js" bundleable="false" hideInBundle="false" isOnline="false"/>
     <file name="jPwOneOff.js" bundleable="false" hideInBundle="false" isOnline="false"/>
     <file name="jPwParts.js" bundleable="false" hideInBundle="false" isOnline="false"/>
     <file name="jPwSelector.js" bundleable="false" hideInBundle="false" isOnline="false"/>
     <file name="jPwUtils.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+    <file name="spa.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+=======
+    <file name="jPwFiles.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
+    <file name="jPwFormCstSO.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
+    <file name="jPwImport.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+    <file name="jPwOneOff.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
+    <file name="jPwParts.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
+    <file name="jPwSelector.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
+    <file name="jPwUtils.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
+    <file name="placeholder.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+    <file name="spa.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
+>>>>>>> dc48e121ed51ff8f97c414076c214a702eecfe30
     <file name="testRestlet.js" bundleable="false" hideInBundle="false" isOnline="false"/>
-    <file name="testSuitelet.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+    <file name="testSuitelet.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
   </folder>
 </project>
