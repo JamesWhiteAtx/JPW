@@ -123,19 +123,29 @@
 		
 		var partsList = [];
 		
-		var initMakeAddRepl = function() {
+		var initMakeAddRepl = function(onlyBestSeller) {
 			partsList = [];
+			
+			var replEvalFcn, getValFcn;
+			if (onlyBestSeller) {
+				replEvalFcn = function (part) { return part.isBesSeller && part.isLeatherKit; };
+				getValFcn = function (part) { return part.basePartNo; }
+			} else {
+				replEvalFcn = function (part) { return false; };
+				getValFcn = function (part) { return part.nameNoHier(); }
+			};
+			
 			return jPw.makeAddRepl(
 				function (part) { partsList.push(part); }, 
 				function (part, idx) { partsList[idx] = part; }, 
-				function (part) { return part.isBesSeller && part.isLeatherKit; },
-				function (part) { return part.basePartNo; },
+				replEvalFcn,
+				getValFcn,
 				function (record) { return parts.makeLeaPartObj(record); }
 			);
 		};
 		
-		search.results = function() {
-			var addRepl = initMakeAddRepl();
+		search.results = function(onlyBestSeller) {
+			var addRepl = initMakeAddRepl(onlyBestSeller);
 			addRepl.each(search.srchObj.results());
 			return partsList;
 		};

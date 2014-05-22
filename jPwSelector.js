@@ -397,7 +397,7 @@
 }( this.jPw.slctr = this.jPw.slctr || {}));
 */
 (function(slctr) {
-        slctr.ptrnLeaResults = function(leaSearch, extraCols, extraMapFcn) {
+        slctr.ptrnLeaResults = function(leaSearch, extraCols, extraMapFcn, hvAndBase) {
 
                 leaSearch
                         .addCol(new nlobjSearchColumn('custitem_leather_color'))
@@ -416,7 +416,7 @@
                 };
                 
                 
-                var kits = leaSearch.results();
+                var kits = leaSearch.results((!hvAndBase));
                 
                 if(!kits) {
                         return null;
@@ -505,13 +505,15 @@
                 search.addFilt(new nlobjSearchFilter('customer', 'pricing', 'is', custId));
                 
                 var ptrnKits = slctr.ptrnLeaResults(search,
-                        [new nlobjSearchColumn('onlineprice'),
-                        new nlobjSearchColumn('pricelevel', 'pricing'), 
-                        new nlobjSearchColumn('unitprice', 'pricing')], 
+                        [	new nlobjSearchColumn('onlineprice'),
+                         	new nlobjSearchColumn('pricelevel', 'pricing'), 
+                         	new nlobjSearchColumn('unitprice', 'pricing')
+                        ], 
                         function(item, record){
-                        item.unitprice = record.getValue('unitprice', 'pricing');
-                        item.onlineprice = record.getValue('onlineprice');
-                        }
+                        	item.unitprice = record.getValue('unitprice', 'pricing');
+                        	item.onlineprice = record.getValue('onlineprice');
+                        },
+                        true
                 );
                 
                 var typeOrd = [10, 3, 6, 7, 4, 5, 1, 2];

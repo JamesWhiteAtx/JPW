@@ -3,7 +3,7 @@
  * Shared javascript utility library
  * 
  * Version    Date            Author           Remarks
- * 1.00       26 Aug 2013     james.white
+ * 1.00       09 April 2013     james.white
  *
  * 
  */
