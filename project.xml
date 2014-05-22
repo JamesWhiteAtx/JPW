@@ -18,8 +18,13 @@
     </folder>
     <file name="CstSoConfigOption.js" bundleable="false" hideInBundle="false" isOnline="false"/>
 <<<<<<< HEAD
+<<<<<<< HEAD
     <file name="DiInvAdjForm.js" bundleable="false" hideInBundle="false" isOnline="false"/>
     <file name="EbayParts.js" bundleable="false" hideInBundle="false" isOnline="false"/>
+=======
+    <file name="DiInvAdjForm.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
+    <file name="EbayParts.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
+>>>>>>> dc48e121ed51ff8f97c414076c214a702eecfe30
 =======
     <file name="DiInvAdjForm.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
     <file name="EbayParts.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
@@ -32,6 +37,7 @@
     <file name="jPwCatalogs.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
     <file name="jPwConfiguratorUI.js" bundleable="false" hideInBundle="false" isOnline="false"/>
 <<<<<<< HEAD
+<<<<<<< HEAD
     <file name="jPwFiles.js" bundleable="false" hideInBundle="false" isOnline="false"/>
     <file name="jPwFormCstSO.js" bundleable="false" hideInBundle="false" isOnline="false"/>
     <file name="jPwOneOff.js" bundleable="false" hideInBundle="false" isOnline="false"/>
@@ -40,6 +46,8 @@
     <file name="jPwUtils.js" bundleable="false" hideInBundle="false" isOnline="false"/>
     <file name="spa.js" bundleable="false" hideInBundle="false" isOnline="false"/>
 =======
+=======
+>>>>>>> dc48e121ed51ff8f97c414076c214a702eecfe30
     <file name="jPwFiles.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
     <file name="jPwFormCstSO.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
     <file name="jPwImport.js" bundleable="false" hideInBundle="false" isOnline="false"/>
@@ -49,6 +57,9 @@
     <file name="jPwUtils.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
     <file name="placeholder.js" bundleable="false" hideInBundle="false" isOnline="false"/>
     <file name="spa.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
+<<<<<<< HEAD
+>>>>>>> dc48e121ed51ff8f97c414076c214a702eecfe30
+=======
 >>>>>>> dc48e121ed51ff8f97c414076c214a702eecfe30
     <file name="testRestlet.js" bundleable="false" hideInBundle="false" isOnline="false"/>
     <file name="testSuitelet.js" bundleable="false" hideInBundle="false" isOnline="false" textFileEncoding="_utf8"/>
