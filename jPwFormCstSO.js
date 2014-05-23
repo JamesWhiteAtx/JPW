@@ -300,7 +300,7 @@
 			console.log('Load was performed jquery-ui.');
 			
 			$('<style type="text/css"> '+
-					'div.ui-dialog {font-size: 0.85em;} div.ui-dialog table {font-size: 0.85em;} '+ 
+					'div.ui-dialog {font-size: 11px;} div.ui-dialog table {font-size: 11px;} '+ 
 					'table.lst-dlg-list {border-collapse: collapse; width:100%;} '+
 					'table.lst-dlg-list td, table.lst-dlg-list th {border: 1px solid #a0a0a0; padding: 3px;} '+
 					'table.lst-dlg-list th {font-weight:bold;} '+
