@@ -4,10 +4,76 @@
  */
 
 var test = function (request, response) {
-	var internalid  = 339666;
-	var part = jPw.ebay.getNsPart(internalid, {cars: true, images: true, config: true});
-	
-	jPw.jsonResponse( request, response, {count: part.lstgCfg.images.length, images: part.lstgCfg.images} );
+
+    var ss = nlapiLoadSearch(null, 'customsearch_ptrn_hv_in_store');
+    var rs = ss.runSearch();
+
+    var l = [];    
+
+    for (var i = 0; i < ss.columns.length; i++) {
+    	l.push ( {name: ss.columns[i].name, label: ss.columns[i].label} );
+    };
+
+    var rows = [];
+    var last = {};
+
+    rs.forEachResult(function (searchRow) {
+    	var row = {};
+    	for (var i = 0; i < ss.columns.length; i++) {
+    		row[l[i].name] = searchRow.getText( ss.columns[i]) || searchRow.getValue( ss.columns[i]);
+    		
+   			//last = next;
+   			//vals.push( last );
+    	};
+
+    	if (row.feedname != last.feedname) {
+    		last = row;
+        	rows.push(last);
+    	}
+    	
+    	return true;
+    });    
+  
+    
+    var titles = [];
+    for (var i = 0; i < l.length; i++) {
+    	titles.push(l[i].label);
+    };
+
+    var titleRow = '"' + titles.join('","') +'"';
+    
+    var file = titleRow; 
+    
+    var vals;
+
+    jPw.each(rows, function() {
+            row = this;
+            vals = [];
+            for (var i = 0, len = l.length; i < len; i++) {
+                    vals.push( '"'+row[l[i].name]+'"' );
+            };
+            file = file + '\r\n' + vals.join(',');
+    });
+
+    //response.write(file);
+    
+    response.setContentType('CSV', 'NetSuiteExport.csv', 'attachment');
+    response.writeLine(file);       
+    
+    
+//    var respObject = {labels: l, count: rows.length, rows: rows};
+
+	//respObject = [{code:1,value:"one"},{code:1,value:"one"},{code:1,value:"one"},{code:1,value:"one"}];
+//	jPw.jsonResponse(request, response, respObject);
+	/*
+	var html  ='<!DOCTYPE html><html lang="en" xmlns="http://www.w3.org/1999/xhtml">'
+	+'<body>'
+	+'<h1>Clearance List</h1>'
+	+'</body>'
+	+'</html>';
+	response.setContentType('HTMLDOC');
+	response.write( html );
+	*/
 };
 /*
  	var form = nlapiCreateForm('SPA');
@@ -1116,7 +1182,7 @@ function ebayPartsFile(request, response)
 
 function demoList(request, response)
 {
-     var list = nlapiCreateList('Simple List');
+     var list = nlapiCreateList('Simple Listx', false);
  
      // You can set the style of the list to grid, report, plain, or normal, or you can get the
     // default list style that users currently have specified in their accounts.
@@ -1138,7 +1204,7 @@ function demoList(request, response)
      returncols[3] = new nlobjSearchColumn('salesrep');
      returncols[4] = new nlobjSearchColumn('amount');
  
-     //var results = nlapiSearchRecord('estimate', null, new nlobjSearchFilter('mainline',null,'is','T'), returncols);
+     var results = nlapiSearchRecord('estimate', null, new nlobjSearchFilter('mainline',null,'is','T'), returncols);
      
      list.addRows( results );
  
