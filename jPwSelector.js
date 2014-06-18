@@ -404,17 +404,17 @@
                         .addCol(new nlobjSearchColumn('name', 'custitem_leather_color').setSort( false ))
                         .addCol(new nlobjSearchColumn('custrecord_swatch', 'custitem_leather_color'))
                         .addCol(new nlobjSearchColumn('custitem_is_special_edition'))
+                        .addCol(new nlobjSearchColumn('custitem_clearance_item'))
                         .addCol(new nlobjSearchColumn('custitem_customizations'))
                         .addCol(new nlobjSearchColumn('custitem_decoration_summary'))   
-                        .addCol(new nlobjSearchColumn('custitem_ebay_listing_url'))
+                        .addCol(new nlobjSearchColumn('storedisplayimage'))
                 ;
-                
+
                 if (extraCols) {
-                        jPw.each(extraCols, function() {
-                                leaSearch.addCol(this);
-                        });
+                	jPw.each(extraCols, function() {
+                		leaSearch.addCol(this);
+                	});
                 };
-                
                 
                 var kits = leaSearch.results((!hvAndBase));
                 
@@ -430,10 +430,11 @@
                         leacolorname:this.getValue('name', 'custitem_leather_color'),
                         leacolorswatch:this.getValue('custrecord_swatch', 'custitem_leather_color'),
                         isspecial:('T' == this.getValue('custitem_is_special_edition')),
+                        isclearance:('T' == this.getValue('custitem_clearance_item')),
                         customizations:(this.getValue('custitem_customizations')|| '').split(','),
                         customizationnames:(this.getText('custitem_customizations')|| '').split(','),
                         decorations:this.getValue('custitem_decoration_summary'),
-                        ebaylisturl:this.getValue('custitem_ebay_listing_url')
+                        storeimgurl:this.getText('storedisplayimage')
                     };
                 jPw.setIdNm(this, 'custitem_leather_kit_type', item, 'kittype');                
         
@@ -463,7 +464,7 @@
                 
         };
 
-        slctr.ptrnrecsResult = function(ptrnId, carId, intColId, ctlgs) {
+        slctr.ptrnrecsResult = function(ptrnId, carId, intColId, ctlgs, extraFilts, extraCols, extraMapFcn, hvAndBase) {
                 var recItmIds = jPw.cars.getIntColRecItmIds(ptrnId, carId, intColId, ctlgs);
                 
                 var itmIds = jPw.map(recItmIds, function(){
@@ -472,8 +473,14 @@
                 
                 var srch = jPw.parts.getLeaKitSearch()
                         .addFilt(new nlobjSearchFilter('internalid', null, 'anyof', itmIds));
+
+                if (extraFilts) {
+                	jPw.each(extraFilts, function() {
+                		srch.addFilt(this);
+                	});
+                };
                 
-                var ptrnKits = slctr.ptrnLeaResults(srch);
+                var ptrnKits = slctr.ptrnLeaResults(srch, extraCols, extraMapFcn, hvAndBase);
                 
                 jPw.each(ptrnKits, function() {
                         var itmId = this.id;
@@ -818,6 +825,51 @@
                 return jPw.slctr.ptrnkitsResult(ptrnId, ctlgs);
         };
 
+        
+        slctr.ptrnrecsEbayResponse = function(request, ctlgs) {
+            var ptrnId = jPw.getIdParm(request, 'ptrnid');
+            if (typeof ptrnId !== 'number') {
+                    return ptrnId;
+            };
+            
+            var carId = jPw.getIdParm(request, 'carid');
+            if (typeof carId !== 'number') {
+                    return carId;
+            };
+
+            var intColId = jPw.getIdParm(request, 'intcolid');
+            if (typeof intColId !== 'number') {
+                    return intColId;
+            };
+            
+            return jPw.slctr.ptrnrecsResult(ptrnId, carId, intColId, ctlgs,
+            		null,
+            		[new nlobjSearchColumn('custitem_ebay_listing_url')],
+		            function(item, record){
+		            	item.ebaylisturl = record.getValue('custitem_ebay_listing_url');
+		            },
+		            false);
+        };
+        
+        slctr.ptrnrecsCostcoResponse = function(request, ctlgs) {
+            var ptrnId = jPw.getIdParm(request, 'ptrnid');
+            if (typeof ptrnId !== 'number') {
+                    return ptrnId;
+            };
+            
+            var carId = jPw.getIdParm(request, 'carid');
+            if (typeof carId !== 'number') {
+                    return carId;
+            };
+
+            var intColId = jPw.getIdParm(request, 'intcolid');
+            if (typeof intColId !== 'number') {
+                    return intColId;
+            };
+            
+            return jPw.slctr.ptrnrecsResult(ptrnId, carId, intColId, ctlgs, [new nlobjSearchFilter('custitem_clearance_item', null, 'is', 'F')]);
+        };
+                
         slctr.ptrnrecsSOResponse = function(request, ctlgs) {
                 var ptrnId = jPw.getIdParm(request, 'ptrnid');
                 if (typeof ptrnId !== 'number') {
@@ -895,6 +947,9 @@
                 case 'anybodies': jPw.successRespond(request, response, jPw.slctr.bodiesResponse(request, ctlgs, true));break;
                 case 'anytrims': jPw.successRespond(request, response, jPw.slctr.trimsResponse(request, ctlgs, true));break;
                 case 'anycars': jPw.successRespond(request, response, jPw.slctr.carsResponse(request, ctlgs, true));break;
+                
+                case 'ptrnrecsebay': jPw.successRespond(request, response, jPw.slctr.ptrnrecsEbayResponse(request, ctlgs));break;
+                case 'ptrnrecscostco': jPw.successRespond(request, response, jPw.slctr.ptrnrecsCostcoResponse(request, ctlgs));break;
                 
                 case 'carptrnsso': jPw.successRespond(request, response, jPw.slctr.carptrnsSOResponse(request, ctlgs));break;
                 case 'ptrnrecsso': jPw.successRespond(request, response, jPw.slctr.ptrnrecsSOResponse(request, ctlgs));break;
