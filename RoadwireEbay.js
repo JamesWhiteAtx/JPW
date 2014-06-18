@@ -168,6 +168,17 @@ function suitelet(request, response){
 				};
 			 };
 			 
+			 cfg.cleanImages = function() {
+				 if (cfg.images) {
+					 cfg.images = jPw.map(cfg.images, function() {
+						var img = this;
+						if ((img.order && img.order >= 0) || (img.order == 0)) {
+							return img;
+						};
+				     });
+				 };
+			 };
+			 
 			 cfg.mergeCfg = function(newCfg) {
 				 if ((newCfg) && (!jPw.objEmpty(newCfg))) {
 
@@ -1879,6 +1890,10 @@ function suitelet(request, response){
 						part.lstgCfg.sortImages();
 					};
 					
+					if (part.lstgCfg) {
+						part.lstgCfg.cleanImages();
+					};
+					
 				}; //if (options.config) 
 			};
 		};
@@ -2036,7 +2051,7 @@ function suitelet(request, response){
 
 		var ids = [];
 		var urls = [];
-		
+
 		jPw.each(part.lstgCfg.images, function() {
 			var img = this;
 			if (img.id) {
@@ -2351,8 +2366,8 @@ function suitelet(request, response){
 				nlapiLogExecution( 'ERROR', e.getCode(), e.getDetails() );
 				ebay.errResp(e.getCode() +': '+ e.getDetails());
 			} else {
-				nlapiLogExecution( 'ERROR', 'Unexpected Error', e.toString() );
-				ebay.errResp('Unexpected Error' + '\n' + e.toString());
+				nlapiLogExecution( 'ERROR', 'Unexpected Error', (typeof e != 'undefined') ? e.toString() : 'not defined' );
+				ebay.errResp('Unexpected Error' + '\n' + (typeof e != 'undefined') ? e.toString() : 'not defined');
 			};
 			return;
 		};
@@ -2490,8 +2505,8 @@ function suitelet(request, response){
                                 nlapiLogExecution( 'ERROR', e.getCode(), e.getDetails() );
                                 ebay.errResp(e.getCode() +': '+ e.getDetails());
                         } else {
-                                nlapiLogExecution( 'ERROR', 'Unexpected Error', e.toString() )
-                                ebay.errResp('Unexpected Error' + '\n' + e.toString());
+                                nlapiLogExecution( 'ERROR', 'Unexpected Error', (typeof e != 'undefined') ? e.toString() : 'not defined' )
+                                ebay.errResp('Unexpected Error' + '\n' + (typeof e != 'undefined') ? e.toString() : 'not defined');
                         };
                         return;
                 };
@@ -2544,7 +2559,7 @@ function suitelet(request, response){
               if ( e instanceof nlobjError ) {
               	nlapiLogExecution( 'ERROR', e.getCode(), partno + '  ' + internalid +' ' + e.getDetails() );
               } else {
-              	nlapiLogExecution( 'ERROR', 'Unexpected Error', e.toString() );
+              	nlapiLogExecution( 'ERROR', 'Unexpected Error', (typeof e != 'undefined') ? e.toString() : 'not defined' );
               };
            };
            
@@ -2674,7 +2689,7 @@ function suitelet(request, response){
                                                 if ( e instanceof nlobjError ) {
                                                         nlapiLogExecution( 'ERROR', e.getCode(), e.getDetails() );
                                                 } else {
-                                                        nlapiLogExecution( 'ERROR', 'Unexpected Error', e.toString() );
+                                                        nlapiLogExecution( 'ERROR', 'Unexpected Error', (typeof e != 'undefined') ? e.toString() : 'not defined' );
                                                 };
                                         };
                                         
@@ -2705,8 +2720,8 @@ function suitelet(request, response){
                                 nlapiLogExecution( 'ERROR', e.getCode(), e.getDetails() );
                                 ebay.errResp(e.getCode() +': '+ e.getDetails());
                         } else {
-                                nlapiLogExecution( 'ERROR', 'Unexpected Error', e.toString() );
-                                ebay.errResp('Unexpected Error' + '\n' + e.toString());
+                                nlapiLogExecution( 'ERROR', 'Unexpected Error', (typeof e != 'undefined') ? e.toString() : 'not defined' );
+                                ebay.errResp('Unexpected Error' + '\n' + (typeof e != 'undefined') ? e.toString() : 'not defined');
                         };
                         return;
                 };
@@ -3007,8 +3022,8 @@ function suitelet(request, response){
                                         nlapiLogExecution( 'ERROR', e.getCode(), e.getDetails() );
                                         ebay.errResp(e.getCode() +': '+ e.getDetails());
                                 } else {
-                                        nlapiLogExecution( 'ERROR', 'Unexpected Error', e.toString() )
-                                        ebay.errResp('Unexpected Error' + '\n' + e.toString());
+                                        nlapiLogExecution( 'ERROR', 'Unexpected Error', (typeof e != 'undefined') ? e.toString() : 'not defined' )
+                                        ebay.errResp('Unexpected Error' + '\n' + (typeof e != 'undefined') ? e.toString() : 'not defined');
                                 };
                                 return;
                         };
