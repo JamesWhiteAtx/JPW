@@ -489,6 +489,8 @@
                                 this.rectype = recItmIds[idx].type;
                         };
                 });
+                
+                ptrnKits.sort(function(a,b) {return (a.rectype < b.rectype) ? 1 : ((b.rectype < a.rectype) ? -1 : 0);} );
 
                 return jPw.okResult({
                         ptrnid: ptrnId,
