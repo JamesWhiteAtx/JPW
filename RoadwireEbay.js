@@ -2056,10 +2056,16 @@ function suitelet(request, response){
 			var img = this;
 			if (img.id) {
 				ids.push(img.id);
-			} else if ((img.store) && (part.img_id)) {
+			} else if (img.store)  {
+				if (!part.img_id) {
+					throw nlapiCreateError('LISTING_CREATION_ERROR', 'Netsuite item '+part.ns_part+' does not have a store image defined.');
+				};
 				img.id = part.img_id;
 				ids.push(img.id);
-			} else if ((img.thumb) && (part.thumb_id)) {
+			} else if (img.thumb)  {
+				if (!part.thumb_id) {
+					throw nlapiCreateError('LISTING_CREATION_ERROR', 'Netsuite item '+part.ns_part+' does not have a thumbnail image defined.');
+				};
 				img.id = part.thumb_id;
 				ids.push(img.id);
 			} else if (img.url) {
@@ -2366,8 +2372,10 @@ function suitelet(request, response){
 				nlapiLogExecution( 'ERROR', e.getCode(), e.getDetails() );
 				ebay.errResp(e.getCode() +': '+ e.getDetails());
 			} else {
-				nlapiLogExecution( 'ERROR', 'Unexpected Error', (typeof e != 'undefined') ? e.toString() : 'not defined' );
-				ebay.errResp('Unexpected Error' + '\n' + (typeof e != 'undefined') ? e.toString() : 'not defined');
+				var msg = 'error: ' + e.toString();
+				
+				nlapiLogExecution( 'ERROR', 'Unexpected Error', msg );
+				ebay.errResp('Unexpected Error' + '\n' + msg);
 			};
 			return;
 		};
