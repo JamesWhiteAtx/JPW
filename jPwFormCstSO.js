@@ -140,55 +140,97 @@
 
 
 (function(jPw, $, undefined) {
-	jPw.makeCustomPopMenuItem = function (menuID, title, clickFcn, imgUrl) {
-		var mnuObj = {};
-		
-		var mnuContElm = $('#' + menuID);
-		if (mnuContElm.length > 0) {
-			var mnuElm = mnuContElm.find('.ddmInnerTable');
-			if (mnuElm.length > 0) {
+	jPw.makeCustomPopMenuItem = function (newMenuID, oldMenuID, title, clickFcn, imgUrl) {
+		var mnuObj = null;
+	
+		var newPopMnu = function() {
+			var tipMenu = $('#' + newMenuID);
+			if (tipMenu.length > 0) {
+				mnuObj = {};
 				
-				mnuObj.mnuContElm = mnuContElm;
-				mnuObj.mnuElm = mnuElm;
-
-				mnuObj.mnuItm = $('<div />').attr('id', itmMnuSlctrId).addClass('dropdownNotSelected')
-					.mouseover(function() {NLAccelMenuButton_onMouseOver(this);})
-					.mouseout(function() {NLAccelMenuButton_onMouseOut(this);}) 
-					.click(function() {$(this).trigger('mouseout');})
-				;
-				mnuObj.wdgBoxSpan = $('<span />').css('left', '0px').addClass('field_widget_boxpos')
-					.appendTo(mnuObj.mnuItm);
-				;
-				mnuObj.mnuItmImg = $('<img/>')
+				var mnuItmImg = $('<img/>')
 					.attr({
 						src: imgUrl, 
 						border: '0', 
 						align: 'absmiddle'
-					})
-				;
+					});
 				
-				itmMnuSlctrAnch = $('<a />')
+				mnuObj.mnuItm = $('<a />')
 					.attr({
-						id: 'item_popup_selector', 
+						id: 'jpwpop_' + newMenuID, 
 						tabindex: '-1', 
 						title: title,
-						href: '#'
+						href: 'javascript:void("'+newMenuID+'")'
 					})
-					.addClass('smalltextnolink')
-					.append(mnuObj.mnuItmImg)
+					.data('helperbuttontype', 'list')
+					.addClass('smalltextnolink uir-field-widget')
+					.append(mnuItmImg)
 					.append('&nbsp;' + title)
-					.appendTo(mnuObj.wdgBoxSpan)
 					.on( "click", clickFcn )
-				;
+					;
 				
-				mnuObj.showMnuItm = function() {
-					mnuObj.mnuItm.show();	
+				tipMenu.append(mnuObj.mnuItm);
+			};
+		};
+		
+		var oldPopMnu = function() {
+			var mnuContElm = $('#' + oldMenuID);
+			if (mnuContElm.length > 0) {
+				var mnuElm = mnuContElm.find('.ddmInnerTable');
+				if (mnuElm.length > 0) {
+					mnuObj = {};
+					mnuObj.mnuContElm = mnuContElm;
+					mnuObj.mnuElm = mnuElm;
+
+					mnuObj.mnuItm = $('<div />').attr('id', itmMnuSlctrId).addClass('dropdownNotSelected')
+						.mouseover(function() {NLAccelMenuButton_onMouseOver(this);})
+						.mouseout(function() {NLAccelMenuButton_onMouseOut(this);}) 
+						.click(function() {$(this).trigger('mouseout');})
+					;
+					mnuObj.wdgBoxSpan = $('<span />').css('left', '0px').addClass('field_widget_boxpos')
+						.appendTo(mnuObj.mnuItm);
+					;
+					mnuObj.mnuItmImg = $('<img/>')
+						.attr({
+							src: imgUrl, 
+							border: '0', 
+							align: 'absmiddle'
+						})
+					;
+					
+					itmMnuSlctrAnch = $('<a />')
+						.attr({
+							id: 'item_popup_selector', 
+							tabindex: '-1', 
+							title: title,
+							href: '#'
+						})
+						.addClass('smalltextnolink')
+						.append(mnuObj.mnuItmImg)
+						.append('&nbsp;' + title)
+						.appendTo(mnuObj.wdgBoxSpan)
+						.on( "click", clickFcn )
+					;
+					
+					mnuObj.mnuItm.appendTo(mnuObj.mnuElm);
 				};
-				mnuObj.hideMnuItm = function() {
-					mnuObj.mnuItm.hide();
-				};
-				
-				mnuObj.mnuItm.appendTo(mnuObj.mnuElm);
+			};
+		};
+		
+		if (newMenuID) {
+			newPopMnu();
+		};
+		
+		if ((!mnuObj) && (oldMenuID)) {
+			oldPopMnu();
+		};
+
+		if (mnuObj && mnuObj.mnuItm) {
+			mnuObj.showMnuItm = function() {
+				mnuObj.mnuItm.show();	
+			};
+			mnuObj.hideMnuItm = function() {
+				mnuObj.mnuItm.hide();
 			};
 		};
 		
@@ -205,8 +247,11 @@
 	itmMnuSlctrId = 'item_menu_selector';
 	vhclFldId = 'custbody_sales_order_vehicle';
 	vhclYrFldId = 'custbody_sales_order_vehicle_yr'; 
-	vhclMenuID = 'actionbuttons_'+vhclFldId+'_fs';
-	itmItmMenuID = 'actionbuttons_item_item_fs';
+	var vhclMenuID_old = 'actionbuttons_'+vhclFldId+'_fs';
+	var itmItmMenuID_old = 'actionbuttons_item_item_fs';
+	
+	var vhclMenuID_new = vhclFldId+'_fs_tooltipMenu';
+	var itmItmMenuID_new = 'item_item_fs_tooltipMenu';
 	
 	jPw.carSlctrMnuItm = undefined;
 	jPw.leaSlctrMnuItm = undefined;
@@ -310,7 +355,7 @@
 					'tr.jpw-found td {background-color: #CC9999;} '+
 			'</style>').appendTo('head');
 			
-			jPw.carSlctrMnuItm = jPw.makeCustomPopMenuItem (vhclMenuID, 'Vehicle Selector',
+			jPw.carSlctrMnuItm = jPw.makeCustomPopMenuItem (vhclMenuID_new, vhclMenuID_old, 'Vehicle Selector',
 					function(e) {
 						jPw.carSlctr.openDlg();
 						return false;
@@ -322,7 +367,7 @@
 				jPw.carSlctr.onOkClick = jPw.carSlctrOkClick;
 			};
 			
-			jPw.leaSlctrMnuItm = jPw.makeCustomPopMenuItem (itmItmMenuID, 'Leather Selector', 
+			jPw.leaSlctrMnuItm = jPw.makeCustomPopMenuItem (itmItmMenuID_new, itmItmMenuID_old, 'Leather Selector', 
 					function(e) {
 						var custid = nlapiGetFieldValue('entity');
 						if (!custid) {
